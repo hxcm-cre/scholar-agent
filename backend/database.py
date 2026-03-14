@@ -19,8 +19,7 @@ from sqlalchemy.orm import (
 # ---------------------------------------------------------------------------
 # Engine & session
 # ---------------------------------------------------------------------------
-_DEFAULT_DB = str(Path(__file__).resolve().parent.parent / "scholar_agent.db")
-_DB_PATH = os.getenv("DATABASE_PATH", _DEFAULT_DB)
+_DB_PATH = Path(__file__).resolve().parent.parent / "scholar_agent.db"
 DATABASE_URL = f"sqlite:///{_DB_PATH}"
 
 engine = create_engine(

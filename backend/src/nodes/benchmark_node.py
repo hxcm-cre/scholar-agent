@@ -257,11 +257,20 @@ def benchmark_node(state: AgentState) -> Dict[str, Any]:
     llm = make_qwen_llm(model_name=current_model, temperature=0.0)
     sys_prompt, regex_patterns = _generate_dynamic_prompts(domain_metrics)
     
-    extracted_results = []
+    # Load previously accumulated results if this is a subsequent iteration
+    previous_metrics = state.get("paper_metrics", {}).get("papers", [])
+    extracted_results = list(previous_metrics)
     total_tokens = 0
+    
+    # Track titles already in extracted_results to avoid duplicates in accumulating
+    existing_titles = {res["title"].lower().strip() for res in extracted_results if "title" in res}
     
     # 1. 提取论文指标
     for p in top_papers[:10]: # 平衡精度与成本
+        title = (p.get("title") or "").strip()
+        if title.lower() in existing_titles:
+            continue
+        
         full_text_raw = p.get("full_text_cache") or _paper_full_text(p, [])
         if not full_text_raw: continue
         context_for_llm = _filter_relevant_context_dynamic(full_text_raw, regex_patterns)
@@ -295,12 +304,20 @@ def benchmark_node(state: AgentState) -> Dict[str, Any]:
     lines.append(f"**Research Query**: `{state.get('query')}`")
     lines.append(f"**Target Metrics**: {', '.join([f'`{m}`' for m in domain_metrics])}\n")
     
+    # Get all accumulated papers (not just current top_tier_papers) to display in literature section
+    all_accumulated_papers = state.get("candidate_papers", [])[:15] if not top_papers and iteration > 1 else top_papers
+    
     # --- 论文引用列表 ---
     lines.append("## 📚 Key Literature & Venues")
-    if top_papers:
-        for i, p in enumerate(top_papers[:15], 1):
-            info = f"{p.get('venue')}, {p.get('year')}"
-            rank = f"`{p.get('venue_type')}-{p.get('venue_rank')}`"
+    if all_accumulated_papers or extracted_results:
+        display_papers = all_accumulated_papers if all_accumulated_papers else []
+        if not display_papers and extracted_results:
+            # Fallback to display extracted results if top_papers is entirely empty
+            display_papers = extracted_results
+            
+        for i, p in enumerate(display_papers[:15], 1):
+            info = f"{p.get('venue') or p.get('venue_type', 'N/A')}, {p.get('year', 'N/A')}"
+            rank = f"`{p.get('venue_type', 'N/A')}-{p.get('venue_rank', 'N/A')}`"
 
             # 2. 构造链接组
             link_elements = []
@@ -361,6 +378,8 @@ Your task is to synthesize research results between a User's local experiment an
 - Local Experimental Metric: [RMSE: {local_val}]
 - Target Research Metrics: [{target_metrics}]
 - Extracted SOTA Results: (Provided in the JSON below)
+
+If "Extracted SOTA Results" is empty, just focus on providing advice based on the domain generally, or state that more literature needs to be analyzed.
 
 ### Analysis Protocol:
 1. **Domain Compatibility Check**: 

@@ -5,26 +5,7 @@
 
 import type { Project, ProjectDetail, ResearchRequest, NodeStatusEvent } from '../types';
 
-// ---------------------------------------------------------------------------
-// Base URL — in production read from VITE_API_URL, in dev use Vite proxy
-// ---------------------------------------------------------------------------
-const VITE_API_URL = import.meta.env.VITE_API_URL as string | undefined;
-const API_BASE = VITE_API_URL ? `${VITE_API_URL.replace(/\/+$/, '')}/api` : '/api';
-
-/**
- * Derive WebSocket base from the API URL.
- *  - Production: https://api.example.com → wss://api.example.com
- *  - Dev:        '' (empty) → use current page host with Vite proxy
- */
-function wsBase(): string {
-  if (VITE_API_URL) {
-    const url = new URL(VITE_API_URL);
-    const proto = url.protocol === 'https:' ? 'wss' : 'ws';
-    return `${proto}://${url.host}`;
-  }
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${proto}://${window.location.host}`;
-}
+const API_BASE = '/api';
 
 // ---------------------------------------------------------------------------
 // REST helpers
@@ -72,7 +53,9 @@ export function connectWebSocket(
   onMessage: (evt: NodeStatusEvent) => void,
   onClose?: () => void,
 ): WebSocket {
-  const ws = new WebSocket(`${wsBase()}/ws/research/${projectId}`);
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const host = window.location.host; // works with Vite proxy
+  const ws = new WebSocket(`${proto}://${host}/ws/research/${projectId}`);
 
   ws.onopen = () => {
     // Send a ping to keep connection alive

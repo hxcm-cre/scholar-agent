@@ -34,18 +34,9 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 app = FastAPI(title="Scholar-Agent API", version="1.0.0")
 
-# ---------------------------------------------------------------------------
-# CORS — read allowed origins from env; default to wildcard for dev
-# ---------------------------------------------------------------------------
-_frontend_url = os.getenv("FRONTEND_URL", "").strip()
-if _frontend_url:
-    _allow_origins = [u.strip() for u in _frontend_url.split(",") if u.strip()]
-else:
-    _allow_origins = ["*"]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_allow_origins,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

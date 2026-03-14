@@ -148,7 +148,7 @@ const ProjectCard: React.FC<{
 }> = ({ project, onClick, onDelete }) => {
   const cfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.pending;
   const Icon = cfg.icon;
-  const time = new Date(project.created_at).toLocaleString('zh-CN', {
+  const time = new Date(project.created_at + (project.created_at.endsWith('Z') ? '' : 'Z')).toLocaleString('zh-CN', {
     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
   });
 

@@ -97,7 +97,7 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
           <div className="flex gap-4 mt-2 text-xs text-slate-400">
             <span>模型: {project.model_name}</span>
             <span>状态: {project.status}</span>
-            <span>创建: {new Date(project.created_at).toLocaleString('zh-CN')}</span>
+            <span>创建: {new Date(project.created_at + (project.created_at.endsWith('Z') ? '' : 'Z')).toLocaleString('zh-CN')}</span>
           </div>
         </div>
 
@@ -144,15 +144,18 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
                   ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-2 text-slate-700" {...props} />,
                   li: ({node, ...props}) => <li {...props} />,
                   strong: ({node, ...props}) => <strong className="font-bold text-[#1a2b4c]" {...props} />,
-                  blockquote: ({node, ...props}) => (
-                    <div className="my-6 p-5 bg-[#22d3ee]/10 border-l-4 border-[#22d3ee] rounded-r-xl">
-                      <h4 className="font-bold text-[#1a2b4c] flex items-center gap-2 mb-2">
-                        <ShieldCheck size={16} />
-                        Performance Comparison
-                      </h4>
-                      <div className="text-[#1a2b4c]/80 font-medium italic" {...props} />
-                    </div>
-                  ),
+                  blockquote: ({node, ...props}) => {
+                    const { cite, ...rest } = props as any;
+                    return (
+                      <div className="my-6 p-5 bg-[#22d3ee]/10 border-l-4 border-[#22d3ee] rounded-r-xl">
+                        <h4 className="font-bold text-[#1a2b4c] flex items-center gap-2 mb-2">
+                          <ShieldCheck size={16} />
+                          Performance Comparison
+                        </h4>
+                        <div className="text-[#1a2b4c]/80 font-medium italic" {...rest} />
+                      </div>
+                    );
+                  },
                   code: ({node, className, children, ...props}) => {
                     if (className) {
                       return <pre className="bg-slate-50 p-4 rounded-xl text-sm overflow-x-auto"><code className={className} {...props}>{children}</code></pre>;
