@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.git
+.gitignore
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+scholar_agent.db

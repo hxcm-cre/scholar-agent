@@ -1,0 +1,30 @@
+version: "3.9"
+
+volumes:
+  db-data:  # Named volume for SQLite persistence
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - db-data:/data/db          # persistent volume for database
+      - ./backend/data:/app/data  # experiment CSV uploads
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_PATH=/data/db/scholar_agent.db
+      - FRONTEND_URL=http://localhost:3000
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ""  # empty = use nginx proxy (same origin)
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped

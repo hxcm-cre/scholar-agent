@@ -1,0 +1,26 @@
+ 
+langchain-core
+langchain-community
+langchain-openai
+ 
+numpy
+python-dotenv
+beautifulsoup4
+fastapi
+uvicorn[standard]
+ 
+aiosqlite
+pydantic
+ 
+
+# 强制降级 Pandas 以适配 docling 和 streamlit
+pandas>=2.1.4,<3.0.0
+
+# 强制匹配 langgraph 和 langchain
+langgraph>=1.0.7,<1.1.0
+langchain>=1.2.0,<1.3.0
+
+# 其他核心组件
+docling==2.76.0
+websockets>=13.0,<16.0
+sqlalchemy==2.0.25

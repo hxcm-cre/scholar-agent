@@ -1,0 +1,32 @@
+.env  
+# === Python 核心环境 ===
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+        
+*.env   
+build/
+dist/
+*.egg-info/
+
+ 
+
+# === 编辑器与系统文件 ===
+.vscode/           
+.cursor/
+.idea/           
+.DS_Store         
+Thumbs.db         
+
+# === 日志与性能监控 ===
+*.log
+metrics_log.json
+.langgraph/       
+
+# === Streamlit 相关 ===
+.streamlit/config.toml
+.streamlit/secrets.toml
