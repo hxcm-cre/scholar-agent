@@ -27,7 +27,7 @@
 
 **点击前往 Bilibili 观看完整使用教程:**
 
-[![Scholar-Agent Demo](https://img.shields.io/badge/Bilibili-观看教程视频-fb7299?style=for-the-badge&logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1iacUzUEE1)
+[![Scholar-Agent Demo](https://img.shields.io/badge/Bilibili-观看教程视频-fb7299?style=for-the-badge&logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1AmwxzPEBF)
 
 <div align="center">
   <img src="backend/assets/1.png" alt="Scholar-Agent 界面预览" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
