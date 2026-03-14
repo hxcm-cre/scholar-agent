@@ -393,7 +393,8 @@ def filter_node(state: AgentState) -> Dict[str, Any]: # 过滤论文
         ) # 将 z 添加到 combined 列表中
 
     # 2. 【核心去重】剔除历史已展示过的标题
-    history_titles = set(state.get("processed_titles") or [])
+    # history_titles = set(state.get("processed_titles") or [])
+    history_titles = []
     unique_candidates = [
         p for p in combined 
         if p.get("title", "").strip().lower() not in history_titles
@@ -403,8 +404,8 @@ def filter_node(state: AgentState) -> Dict[str, Any]: # 过滤论文
     top = ranked[:15] # 获取得分最高的论文
     # 更新已处理名单：将本轮选出的 top 论文标题加入历史记录
     new_titles = [p.get("title", "").strip().lower() for p in top]
-    updated_history = list(history_titles.union(new_titles))
-
+    #updated_history = list(history_titles.union(new_titles))
+    updated_history = []
     duration = round(time.time() - start, 2)
     # 更新 state 中的耗时记录
     metrics = state.get("metrics_log")

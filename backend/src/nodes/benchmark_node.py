@@ -419,7 +419,7 @@ If "Extracted SOTA Results" is empty, just focus on providing advice based on th
     return {
         "analysis_report": report,
         "iteration": iteration,
-        "done": iteration >= int(state.get("max_iterations", 3)) or len(extracted_results) > 0,
+        "done": iteration >= int(state.get("max_iterations", 1)) or len(extracted_results) > 0,
         "metrics_log": metrics_log,
         "paper_metrics": {"papers": extracted_results}
     }

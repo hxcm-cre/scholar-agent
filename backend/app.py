@@ -37,7 +37,7 @@ def run_agent_with_streaming(query: str, csv_path: Optional[str] = None):
             "experiment_results": {},
             "analysis_report": "",
             "iteration": 0,
-            "max_iterations": 3,
+            "max_iterations": 2,
             "done": False,
             "metrics_log": {"total_tokens": {}, "node_durations": {}}
         }
@@ -161,7 +161,7 @@ def main() -> None:
         # --- 新增：模型选择窗口 ---
         # 可以使用 text_input 手动输入，或者 selectbox 提供常用选项
         model_options = [
-            "qwen2.5-32b-instruct",
+            "qwen3.5-flash",
             "qwen2.5-72b-instruct",
             "qwen2.5-coder-32b-instruct",
             "qwen2.5-14b-instruct"

@@ -133,7 +133,7 @@ def _run_agent_sync(project_id: int, req: ResearchRequest):
             "experiment_results": {},
             "analysis_report": "",
             "iteration": 0,
-            "max_iterations": 3,
+            "max_iterations": 2,
             "done": False,
             "metrics_log": {"total_tokens": {}, "node_durations": {}},
         }
