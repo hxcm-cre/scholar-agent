@@ -162,9 +162,9 @@ def main() -> None:
         # 可以使用 text_input 手动输入，或者 selectbox 提供常用选项
         model_options = [
             "qwen3.5-flash",
-            "qwen2.5-72b-instruct",
-            "qwen2.5-coder-32b-instruct",
-            "qwen2.5-14b-instruct"
+            "qwen2.5-14b-instruct",
+            "qwen2-57b-a14b-instruct",
+            "qwen3-coder-30b-a3b-instruct"
         ]
         selected_model = st.selectbox(
             "选择 LLM 模型",
