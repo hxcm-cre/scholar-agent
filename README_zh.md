@@ -38,7 +38,6 @@
 <div align="center">
   <img src="backend/assets/2.png" alt="Scholar-Agent 界面预览" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
   <br />
-  <i>实时工作流跟踪：通过 WebSocket 在前端直观地观察智能体的每一个思考步骤</i>
 </div>
 
 ---
@@ -46,7 +45,6 @@
 <div align="center">
   <img src="backend/assets/3.png" alt="Scholar-Agent 界面预览" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
   <br />
-  <i>实时工作流跟踪：通过 WebSocket 在前端直观地观察智能体的每一个思考步骤</i>
 </div>
 
 ---
@@ -54,7 +52,6 @@
 <div align="center">
   <img src="backend/assets/4.png" alt="Scholar-Agent 界面预览" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
   <br />
-  <i>实时工作流跟踪：通过 WebSocket 在前端直观地观察智能体的每一个思考步骤</i>
 </div>
 
 ---
