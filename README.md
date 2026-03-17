@@ -1,9 +1,9 @@
 <div align="center">
 
-<img src="./logo.png" alt="Scholar-Agent 标志" width="180" />
+<img src="./logo.png" alt="Scholar-Agent logo" width="180" />
 
 # 🎓 Scholar-Agent
-**基于 LangGraph 的全自动学术研究助理**
+**Fully Automated Academic Research Assistant**
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
@@ -21,9 +21,9 @@
 
 ---
 
-## 📺 演示视频与界面截图
+## 📺 Demo videos and screenshots  
 
-**点击前往 Bilibili 观看完整使用教程:**
+**Click to watch the full tutorial video on Bilibili:**
 
 [![Scholar-Agent Demo](https://img.shields.io/badge/Bilibili-Watch Tutorial Video-fb7299?style=for-the-badge&logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1AmwxzPEBF)
 
@@ -56,16 +56,16 @@
 
 ---
 
-## 🚀 极速启动 (Docker)
+## 🚀 Quick start
 
-### 1. 环境变量配置
+### 1. Environment variable configuration
 ```bash
 # Copy the default environment variable template  
 cp .env.example .env
 ```
 ---
 
-## ⚙️ 核心环境变量说明
+## ⚙️ Core environment variable description
 
 All core configuration settings are centralized in the `.env` configuration file located in the `backend` directory:
 
@@ -77,15 +77,15 @@ All core configuration settings are centralized in the `.env` configuration file
 | `EXPERIMENT_CSV_PATH` | Used to specify the storage directory of the generated quantitative analysis CSV file. (Optional) |
 ---
 
-## 2.  本地开发环境设置
+## 2.  Local development environment setup
 
 Start the backend and frontend separately:
 
-### 依赖要求
+### Dependency requirements
 - Python 3.11 and above
 - Node.js v18 and above
 
-### 后端核心 (FastAPI + LangGraph)
+### Backend core
 First, enter the `backend` directory:
 ```bash
 cd backend
@@ -94,7 +94,7 @@ pip install -r requirements.txt （Only run when starting for the first time）
 uvicorn server:app --reload --port 8000
 ```
 
-### 前端看板 (React + Vite)
+### Frontend dashboard
 Open a **new terminal** and enter the `frontend` directory:
 ```bash
 cd frontend
@@ -104,7 +104,7 @@ npm run dev
 
 ---
 
-## 3.  运行scholar-agent
+## 3.  Run scholar-agent
 
 Now open your browser and visit **[http://localhost:3000](http://localhost:3000)** to start using the platform.
 ---

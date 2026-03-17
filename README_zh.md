@@ -3,7 +3,7 @@
 <img src="./logo.png" alt="Scholar-Agent 标志" width="180" />
 
 # 🎓 Scholar-Agent
-**基于 LangGraph 的全自动学术研究助理**
+**全自动学术研究助理**
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
@@ -59,7 +59,7 @@
 
 ---
 
-## 🚀 极速启动 (Docker)
+## 🚀 极速启动
 
 ### 1. 环境变量配置
 ```bash
@@ -88,7 +88,7 @@ cp .env.example .env
 - Python 3.11 及以上版本
 - Node.js v18 及以上版本
 
-### 后端核心 (FastAPI + LangGraph)
+### 后端核心
 首先进入 `backend` 目录：
 ```bash
 cd backend
@@ -97,7 +97,7 @@ pip install -r requirements.txt （只需第一次启动时运行）
 uvicorn server:app --reload --port 8000
 ```
 
-### 前端看板 (React + Vite)
+### 前端看板
 打开一个**全新的终端**并进入 `frontend` 目录：
 ```bash
 cd frontend
