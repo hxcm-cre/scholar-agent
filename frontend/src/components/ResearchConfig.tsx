@@ -9,10 +9,10 @@ interface ResearchConfigProps {
 }
 
 const MODEL_OPTIONS = [
-  'qwen2.5-32b-instruct',
-  'qwen2.5-72b-instruct',
-  'qwen2.5-coder-32b-instruct',
+  'qwen3.5-flash',
   'qwen2.5-14b-instruct',
+  'qwen2-57b-a14b-instruct',
+  'qwen3-coder-30b-a3b-instruct',
 ];
 
 export const ResearchConfig: React.FC<ResearchConfigProps> = ({ onSubmit, onBack, isSubmitting }) => {
