@@ -82,7 +82,7 @@ cp .env.example .env
 
 ## 2.  本地开发环境设置
 
-将后端和前端分别在裸机部署启动：
+将后端和前端分别启动：
 
 ### 依赖要求
 - Python 3.11 及以上版本
@@ -94,8 +94,6 @@ cp .env.example .env
 cd backend
 python -m venv venv （只需第一次启动时运行）
 pip install -r requirements.txt （只需第一次启动时运行）
-
-# 启动 8000 端口服务
 uvicorn server:app --reload --port 8000
 ```
 
@@ -104,7 +102,6 @@ uvicorn server:app --reload --port 8000
 ```bash
 cd frontend
 npm install （只需第一次启动时运行）
-# 启动 3000 端口开发服务器
 npm run dev
 ```
 

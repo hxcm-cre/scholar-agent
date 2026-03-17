@@ -1,9 +1,9 @@
 <div align="center">
 
-<img src="./logo.png" alt="Scholar-Agent Logo" width="180" />
+<img src="./logo.png" alt="Scholar-Agent 标志" width="180" />
 
 # 🎓 Scholar-Agent
-**The Agentic Research Assistant Powered by LangGraph**
+**基于 LangGraph 的全自动学术研究助理**
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
@@ -15,19 +15,17 @@
 [English](README.md) • [简体中文](README_zh.md)
 
 <p align="center">
-    <strong>Scholar-Agent is an advanced open-source AI assistant designed to automate tedious literature review.</strong>
-    <br />
-    It retrieves, filters, and analyzes academic papers from arXiv and Zotero to provide quantitative, SOTA research insights.
+    <strong>Scholar-Agent can automatically retrieve, filter, and analyze cutting-edge research papers from the web and your local Zotero library, extracting quantified state-of-the-art (SOTA) comparison data and technical recommendations.</strong>
 </p>
 </div>
 
 ---
 
-## 📺 Feature & Demo Video
+## 📺 演示视频与界面截图
 
-**Watch the full introduction video on Bilibili:**
+**点击前往 Bilibili 观看完整使用教程:**
 
-[![Scholar-Agent Demo](https://img.shields.io/badge/Bilibili-观看教程视频-fb7299?style=for-the-badge&logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1AmwxzPEBF)
+[![Scholar-Agent Demo](https://img.shields.io/badge/Bilibili-Watch Tutorial Video-fb7299?style=for-the-badge&logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1AmwxzPEBF)
 
 <div align="center">
   <img src="backend/assets/1.png" alt="Scholar-Agent Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
@@ -37,113 +35,80 @@
 
 ---
 
-## ✨ Core Features
-
-- 🧠 **Multi-Agent Workflow**: Orchestrated by LangGraph. Handles intent parsing, Zotero querying, arXiv cloud search, query expansion, paper filtering, and LLM technical benchmark synthesis.
-- ⚡ **Real-Time Kanban Tracking**: Modern React/Vite frontend visualizing Agent execution state in real-time through WebSockets.
-- 💾 **SQLite Persistence & Dashboard**: Automatically stores project configurations, aggregated literature, and generated Markdown reports for future reference.
-- 📄 **RAG & OCR Integration**: Leverages [Docling](https://github.com/DS4SD/docling) for robust PDF-to-Markdown conversion, effectively handling complex scientific tables and equations with OCR fallback.
-- 🐳 **One-Click Deployment**: Perfectly containerized using Docker Compose for instant full-stack spin up.
+<div align="center">
+  <img src="backend/assets/2.png" alt="Scholar-Agent Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+  <br />
+</div>
 
 ---
 
-## 🏗️ Architecture
-
-```mermaid
-sequenceDiagram
-    participant FE as React Frontend (Vite)
-    participant API as FastAPI Backend
-    participant DB as SQLite
-    participant AG as LangGraph Agent
-
-    FE->>API: POST /api/research
-    API->>DB: INIT Project (pending)
-    API-->>FE: Return { project_id }
-    FE->>API: WebSocket /ws/research/{id}
-    API->>AG: BackgroundTask → Agent Trigger
-    loop Iterative Research Pipeline
-        AG-->>API: Node Status Update
-        API-->>FE: Stream Real-Time Pipeline UI
-    end
-    AG-->>API: Final Synthesized Report
-    API->>DB: PERSIST Literature + Report
-    API-->>FE: CLOSE WebSocket { type: "complete" }
-    FE->>API: GET /api/projects/{id}
-    API-->>FE: Render Interactive Report
-```
+<div align="center">
+  <img src="backend/assets/3.png" alt="Scholar-Agent Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+  <br />
+</div>
 
 ---
 
-## 🚀 Quick Start (Docker)
+<div align="center">
+  <img src="backend/assets/4.png" alt="Scholar-Agent Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+  <br />
+</div>
 
-The fastest and most reliable way to spin up the entire Scholar-Agent stack is via Docker.
+---
 
-### 1. Configure Environment
+## 🚀 极速启动 (Docker)
+
+### 1. 环境变量配置
 ```bash
-# Copy the example environment file
+# Copy the default environment variable template  
 cp .env.example .env
-
-# Edit .env and append your LLM keys (e.g., Qwen API Key)
-# QWEN_API_KEY=sk-your-key-here
 ```
-
-### 2. Launch Stack
-```bash
-docker-compose up --build
-```
-
-**That's it!** Navigate to **[http://localhost:3000](http://localhost:3000)** to access the Scholar-Agent dashboard.
-
 ---
 
-## 💻 Local Development
+## ⚙️ 核心环境变量说明
 
-If you prefer to run the components directly on your host machine for development:
+All core configuration settings are centralized in the `.env` configuration file located in the `backend` directory:
 
-### Prerequisites
-- Python 3.11+
-- Node.js v18+
+| Variable | Description |
+|---|---|
+| `OPENAI_API_KEY` | OpenAI Official API Key, used to drive core Agent decision-making and reasoning logic. |
+| `ZOTERO_API_KEY` | Zotero Personal Account API Key, used to remotely read literature library data.|
+| `ZOTERO_USER_ID` | Your Zotero User ID, used to locate specific personal/group libraries. |
+| `EXPERIMENT_CSV_PATH` | Used to specify the storage directory of the generated quantitative analysis CSV file. (Optional) |
+---
 
-### Backend (FastAPI + LangGraph)
-Open a terminal targeting the `backend` folder:
+## 2.  本地开发环境设置
+
+Start the backend and frontend separately:
+
+### 依赖要求
+- Python 3.11 and above
+- Node.js v18 and above
+
+### 后端核心 (FastAPI + LangGraph)
+First, enter the `backend` directory:
 ```bash
 cd backend
-python -m venv venv
-# Windows: venv\Scripts\activate
-# Unix/Mac: source venv/bin/activate
-
-pip install -r requirements.txt
-cp .env.example .env
-
-# Start the API server on port 8000
+python -m venv venv （Only run when starting for the first time）
+pip install -r requirements.txt （Only run when starting for the first time）
 uvicorn server:app --reload --port 8000
 ```
 
-### Frontend (React + Vite)
-Open a new terminal targeting the `frontend` folder:
+### 前端看板 (React + Vite)
+Open a **new terminal** and enter the `frontend` directory:
 ```bash
 cd frontend
-npm install
-
-# Start the dev server on port 3000
+npm install （Only run when starting for the first time）
 npm run dev
 ```
 
 ---
 
-## ⚙️ Key Configuration Options
+## 3.  运行scholar-agent
 
-Located centrally in your `.env` file:
-
-| Variable | Description |
-|---|---|
-| `QWEN_API_KEY` | Connect to Alibaba Cloud LLM services natively. |
-| `SELECTED_MODEL_NAME` | The default reasoning model (e.g., `qwen2.5-32b-instruct` or `qwen3.5-flash`). |
-| `ZOTERO_BBT_PULL_URL` | Sync with your local academic tracking system (Requires Zotero Better BibTeX plugin). |
-| `USE_OCR` | Set to `1` to force CPU/GPU-based OCR (RapidOCR) during PDF chunking parsing for embedded charts. |
-
+Now open your browser and visit **[http://localhost:3000](http://localhost:3000)** to start using the platform.
 ---
 
 <div align="center">
-Made with ❤️ for Researchers. Accelerating Science with AI.
+Made with ❤️ for Researchers. Accelerating the progress of science with artificial intelligence.
 </div>
