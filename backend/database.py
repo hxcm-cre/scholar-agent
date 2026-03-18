@@ -21,20 +21,30 @@ from passlib.context import CryptContext
 # Engine & session
 # ---------------------------------------------------------------------------
 _DB_PATH = Path(__file__).resolve().parent.parent / "scholar_agent.db"
-DATABASE_URL = f"sqlite:///{_DB_PATH}"
+# Use environment variable if provided, otherwise default to local SQLite
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{_DB_PATH}")
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    echo=False,
-)
+# Fix for Supabase/Render: they often provide "postgres://" which SQLAlchemy 1.4+ requires "postgresql://"
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Enable WAL mode for better concurrent reads
-@event.listens_for(engine, "connect")
-def _set_sqlite_pragma(dbapi_conn, _connection_record):
-    cursor = dbapi_conn.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL;")
-    cursor.close()
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        echo=False,
+    )
+    
+    # Enable WAL mode for SQLite
+    @event.listens_for(engine, "connect")
+    def _set_sqlite_pragma(dbapi_conn, _connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL;")
+        cursor.close()
+else:
+    # PostgreSQL engine
+    engine = create_engine(DATABASE_URL, echo=False)
+
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 

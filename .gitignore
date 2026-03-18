@@ -1,0 +1,19 @@
+# Deployment guides (User requested not to commit)
+DEPLOYMENT_ZH.md
+
+# Local database
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+.DS_Store

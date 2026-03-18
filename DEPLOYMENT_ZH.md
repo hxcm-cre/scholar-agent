@@ -54,13 +54,27 @@
 2.  **内测模式**：您的 `OPENAI_API_KEY` 已在后端安全配置。其他用户注册并登录后即可直接运行研究任务，无需再输入 API Key。
 3.  **本地 Zotero 说明**：云端版本无法直接搜索您的本地电脑 Zotero。建议用户使用 `ZOTERO_USER_ID` 和 `ZOTERO_API_KEY` （如需共享文献库）。
 
+### 3. 数据库持久化 (Supabase PostgreSQL)
+
+为了防止 Render 重新部署或休眠时丢失用户数据，建议使用 Supabase 的 PostgreSQL。
+
+1.  在 [Supabase](https://supabase.com) 创建新项目。
+2.  进入 **Project Settings > Database**。
+3.  找到 **Connection string**，选择 **URI**。
+4.  复制类似于 `postgres://postgres.[YOUR-ID]:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres` 的字符串。
+5.  在 **Render** 的环境变量中添加：
+    *   `DATABASE_URL`: 填入上述复制的 URI。
+    *   (后端代码已自动处理 `postgres://` 到 `postgresql://` 的转换)
+
 ---
 
-## 4. 后续维护
-*   **数据库**：本部署方案默认使用 Render 实例文件系统中的 SQLite。若实例重启，数据可能会重置。如需永久存储，请在 Render 中挂载 **Disk** 到 `/app/scholar_agent.db` 或使用 Render 提供的 **Postgres** 数据库。
-*   **版本更新**：只需将新代码推送到 GitHub，Render 和 Vercel 会自动触发重新部署。
+## 4. 安全说明 (Git & GitHub)
+
+*   **.gitignore**: 我已为您创建了 `.gitignore` 文件，并将 `DEPLOYMENT_ZH.md` 加入其中。这意味着该文件**不会**被提交到 GitHub，确保您的部署细节（如 Render 域名等）仅保留在本地。
+*   **环境变量**: 请务必不要将 `.env` 提交到 Git。所有敏感信息（API Key, Database URL）都应通过云平台的 Dashboard 配置。
 
 ---
+
 
 ## 5. 常见问题排查 (Troubleshooting)
 
