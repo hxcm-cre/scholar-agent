@@ -24,7 +24,7 @@ Tasks:
    - "experiment": Comparing local data/results against published benchmarks.
    - "answer": Seeking a factual or theoretical explanation.
 3. **Dynamic Metric Identification**: 
-   - Based on the specific sub-field identified in the query, list 3-5 standard quantitative or qualitative performance indicators used in top-tier peer-reviewed journals.
+   - Based on the specific sub-field identified in the query, list 2-3 standard quantitative or qualitative performance indicators used in top-tier peer-reviewed journals.
    - **DO NOT** limit yourself to common examples. Think about specific units or specialized benchmarks (e.g., "RMSE, ARMSE, time consumption, ATE/RPE ..." for state estimation, "WER..." for Speech, "Gini Coefficient..." for Economics, or "Effect Size..." for Psychology).
    - If the field is purely theoretical, provide methodological keywords.
 
