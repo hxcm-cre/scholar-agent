@@ -3,7 +3,7 @@ import { Search, UploadCloud, Rocket, ChevronDown, ArrowLeft } from 'lucide-reac
 import type { ResearchWeights } from '../types';
 
 interface ResearchConfigProps {
-  onSubmit: (query: string, modelName: string, weights: ResearchWeights, useOcr: boolean, csvData: string | null) => void;
+  onSubmit: (query: string, modelName: string, weights: ResearchWeights, useOcr: boolean, userMetrics: string, csvData: string | null) => void;
   onBack: () => void;
   isSubmitting: boolean;
 }
@@ -18,6 +18,7 @@ const MODEL_OPTIONS = [
 export const ResearchConfig: React.FC<ResearchConfigProps> = ({ onSubmit, onBack, isSubmitting }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
+  const [userMetrics, setUserMetrics] = useState('');
   const [model, setModel] = useState(MODEL_OPTIONS[0]);
   const [customModel, setCustomModel] = useState('');
   const [useOcr, setUseOcr] = useState(false);
@@ -43,7 +44,7 @@ export const ResearchConfig: React.FC<ResearchConfigProps> = ({ onSubmit, onBack
       const buf = await csvFile.arrayBuffer();
       csvData = btoa(String.fromCharCode(...new Uint8Array(buf)));
     }
-    onSubmit(query, finalModel, weights, useOcr, csvData);
+    onSubmit(query, finalModel, weights, useOcr, userMetrics, csvData);
   };
 
   const wSlider = (label: string, key: keyof ResearchWeights) => (
@@ -73,19 +74,36 @@ export const ResearchConfig: React.FC<ResearchConfigProps> = ({ onSubmit, onBack
 
         {/* Query */}
         <div className="space-y-6">
-          <div>
-            <label className="text-xs font-bold text-[#1a2b4c] uppercase tracking-widest mb-2 block">
-              研究问题 / 关键词
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="例如：EKF state estimation for UAVs"
-                className="w-full h-14 bg-white border border-slate-200 rounded-xl px-4 pr-12 text-lg focus:border-[#1a2b4c] focus:ring-0 outline-none placeholder:text-slate-400 transition-colors shadow-sm"
-              />
-              <Search className="absolute right-4 top-4 text-slate-300" size={24} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="text-xs font-bold text-[#1a2b4c] uppercase tracking-widest mb-2 block">
+                研究问题 / 关键词
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="例如：EKF state estimation for UAVs"
+                  className="w-full h-14 bg-white border border-slate-200 rounded-xl px-4 pr-12 text-lg focus:border-[#1a2b4c] focus:ring-0 outline-none placeholder:text-slate-400 transition-colors shadow-sm"
+                />
+                <Search className="absolute right-4 top-4 text-slate-300" size={24} />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#1a2b4c] uppercase tracking-widest mb-2 block">
+                核心关注指标 (可选，逗号分隔)
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={userMetrics}
+                  onChange={(e) => setUserMetrics(e.target.value)}
+                  placeholder="例如：RMSE, ATE, Runtime"
+                  className="w-full h-14 bg-white border border-slate-200 rounded-xl px-4 text-lg focus:border-[#1a2b4c] focus:ring-0 outline-none placeholder:text-slate-400 transition-colors shadow-sm"
+                />
+              </div>
             </div>
           </div>
 

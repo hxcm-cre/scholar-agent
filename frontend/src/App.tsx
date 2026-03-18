@@ -28,6 +28,7 @@ export default function App() {
     modelName: string,
     weights: ResearchWeights,
     useOcr: boolean,
+    userMetrics: string,
     csvData: string | null,
   ) => {
     setSubmitting(true);
@@ -37,6 +38,7 @@ export default function App() {
         model_name: modelName,
         weights,
         use_ocr: useOcr,
+        user_metrics: userMetrics,
         csv_data: csvData,
       });
       setView({ kind: 'workflow', projectId: project.id });

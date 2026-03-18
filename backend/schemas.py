@@ -24,6 +24,7 @@ class ResearchRequest(BaseModel):
     model_name: str = "qwen2.5-32b-instruct"
     weights: ResearchWeights = ResearchWeights()
     use_ocr: bool = False
+    user_metrics: str = ""
     csv_data: Optional[str] = None  # base64-encoded CSV
 
 

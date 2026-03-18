@@ -68,6 +68,7 @@ class Project(Base):
     status = Column(String(32), default="pending")  # pending / running / done / error
     error_message = Column(Text, nullable=True)
     weights_json = Column(Text, default="{}")
+    user_metrics = Column(Text, default="")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),
                         onupdate=lambda: datetime.now(timezone.utc))

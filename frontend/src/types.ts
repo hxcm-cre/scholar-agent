@@ -14,6 +14,7 @@ export interface ResearchRequest {
   model_name: string;
   weights: ResearchWeights;
   use_ocr: boolean;
+  user_metrics: string;
   csv_data?: string | null;
 }
 

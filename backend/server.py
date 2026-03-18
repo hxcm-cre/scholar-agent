@@ -145,6 +145,7 @@ def _run_agent_sync(project_id: int, req: ResearchRequest):
             "max_iterations": 2,
             "done": False,
             "metrics_log": {"total_tokens": {}, "node_durations": {}},
+            "user_metrics": req.user_metrics,
         }
 
         total_steps = 6
@@ -294,6 +295,7 @@ async def create_research(req: ResearchRequest, bg: BackgroundTasks, db: Session
         model_name=req.model_name,
         status="pending",
         weights_json=_json.dumps(req.weights.model_dump(), ensure_ascii=False),
+        user_metrics=req.user_metrics,
     )
     db.add(project)
     db.commit()

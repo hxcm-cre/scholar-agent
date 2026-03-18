@@ -15,6 +15,7 @@ class AgentState(TypedDict, total=False):
     """
 
     query: str
+    user_metrics: str
 
     chat_history: List[BaseMessage]  # 存储对话上下文
 

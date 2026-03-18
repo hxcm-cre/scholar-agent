@@ -26,7 +26,7 @@ Tasks:
 3. **Dynamic Metric Identification**: 
    - Based on the specific sub-field identified in the query, list 3-5 standard quantitative or qualitative performance indicators used in top-tier peer-reviewed journals.
    - **DO NOT** limit yourself to common examples. Think about specific units or specialized benchmarks (e.g., "RMSE, ARMSE, time consumption, ATE/RPE ..." for state estimation, "WER..." for Speech, "Gini Coefficient..." for Economics, or "Effect Size..." for Psychology).
-   - If the field is purely theoretical, provide methodological keywords (e.g., "Logical Consistency", "Historical Contextualization").
+   - If the field is purely theoretical, provide methodological keywords.
 
 Return ONLY a valid JSON object:
 {
@@ -70,11 +70,19 @@ def assistant_node(state: AgentState) -> Dict:
         except Exception as e:
             print(f"Assistant node Error: {e}")
 
+    # 合并用户输入的指标
+    user_metrics_raw = (state.get("user_metrics") or "").strip()
+    if user_metrics_raw:
+        user_list = [m.strip() for m in user_metrics_raw.split(",") if m.strip()]
+        # 使用 set 去重并保持顺序（通过 dict.fromkeys）
+        combined = list(dict.fromkeys(domain_metrics + user_list))
+        domain_metrics = combined
+
     duration = round(time.time() - start, 2)
     # 更新 state 中的耗时记录
     metrics = state.get("metrics_log")
     metrics["node_durations"]["assistant"] = duration
     metrics["total_tokens"]["assistant"] = tokens
     # 这里使用的是原始的请求，因为LLM的normalized可能会过度推理
-    return {"query": raw_query, "intent": intent, "domain_metrics": domain_metrics, "metrics_log": metrics}
+    return {"query": raw_query, "user_metrics": user_metrics_raw, "intent": intent, "domain_metrics": domain_metrics, "metrics_log": metrics}
 
