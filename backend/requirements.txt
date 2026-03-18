@@ -24,12 +24,3 @@ langchain>=1.2.0,<1.3.0
 docling==2.76.0
 websockets>=13.0,<16.0
 sqlalchemy>=2.0.30
-
-# 认证组件
-passlib[bcrypt]
-bcrypt==4.0.1
-python-jose
-python-multipart
-
-# PostgreSQL support
-psycopg2-binary

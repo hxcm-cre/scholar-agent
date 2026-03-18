@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 /**
  * API service for communicating with the FastAPI backend.
  * Replaces the previous geminiService.ts (direct Gemini calls).
@@ -12,13 +13,9 @@ const API_BASE = `${API_ROOT}/api`;
 // REST helpers
 // ---------------------------------------------------------------------------
 async function request<T>(path: string, opts?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('token');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   const res = await fetch(`${API_BASE}${path}`, {
     headers,
