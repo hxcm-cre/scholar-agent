@@ -64,15 +64,14 @@
 
 ## 5. 常见问题排查 (Troubleshooting)
 
-### 🔴 错误：`Failed to execute 'json' on 'Response': Unexpected end of JSON input`
-如果您在注册或登录时遇到此错误，通常是因为前端**没有正确连接到后端**。
+### 🔴 错误：`Access to fetch at ... has been blocked by CORS policy`
+这是最常见的跨域错误，意味着后端 Render 没有允许前端 Vercel 的访问请求。
 
-*   **原因**：前端代码在 Vercel 运行时默认寻找自身的 `/api` 路径，但 Vercel 上并没有后端程序，导致返回了 HTML（错误页面）而不是 JSON，解析失败。
 *   **解决方法**：
-    1.  前往 Vercel 项目控制台：**Settings > Environment Variables**。
-    2.  检查是否添加了 `VITE_API_BASE_URL`。
-    3.  确保其值是您的 **Render 后端完整地址**（例如 `https://xxx.onrender.com`）。
-    4.  **重要**：添加环境变量后，您需要重新部署 (Redeploy) 才能生效。
+    1.  前往 Render 项目控制台：**Environment**。
+    2.  确保添加了 `CORS_ORIGINS` 环境变量。
+    3.  它的值必须包含您的前端完整网址（例如 `https://scholar-agent-three.vercel.app`）。如果有多个，请用英文逗号隔开。
+    4.  **调试技巧**：如果配置后仍然报错，可以将 `CORS_ORIGINS` 的值暂时设为 `*`（通配符），然后**重新部署 (Manual Deploy)**。如果 `*` 能通，说明是之前的网址拼写或格式有问题。
 
 ### 🔴 错误：`405 Method Not Allowed` / `404 Not Found` (对于 `/projects` 或 `/research`)
 这通常是由于前端请求的路径不正确导致的。

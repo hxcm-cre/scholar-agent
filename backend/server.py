@@ -46,8 +46,12 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 app = FastAPI(title="Scholar-Agent API", version="1.0.0")
 
-# Allow origins from environment variable or default to localhost
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+# Allow origins from environment variable, stripping spaces
+cors_env = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+if cors_env == "*":
+    CORS_ORIGINS = ["*"]
+else:
+    CORS_ORIGINS = [o.strip() for o in cors_env.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
