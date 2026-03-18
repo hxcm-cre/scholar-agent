@@ -27,5 +27,6 @@ sqlalchemy>=2.0.30
 
 # 认证组件
 passlib[bcrypt]
+bcrypt==4.0.1
 python-jose
 python-multipart
