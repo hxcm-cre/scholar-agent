@@ -220,7 +220,7 @@ def _smart_extract_markdown(source: str | bytes) -> str:
             format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=options)}
         )
         # 降级：将最大处理页数从 50 降低到 30，以节省内存
-        return conv.convert(source, max_num_pages=30).document.export_to_markdown()
+        return conv.convert(source, max_num_pages=50).document.export_to_markdown()
 
     # 3. 实施“软着陆”尝试循环
     try:
@@ -230,22 +230,14 @@ def _smart_extract_markdown(source: str | bytes) -> str:
         # 捕捉内存溢出关键词 (bad_alloc, out of memory, runtimeerror)
         if any(kw in error_str for kw in ["bad_alloc", "out of memory", "runtimeerror"]):
             print(f"⚠️ OCR 内存溢出或解析错误，正在实施软着陆降级解析... (Error: {e})")
-            
-            # 立即触发垃圾回收，释放可能的内存阻塞
-            gc.collect()
-            
             # 降级：强制关闭 OCR 并重新尝试
             fallback_options = PdfPipelineOptions()
             fallback_options.do_ocr = False
             try:
                 result = try_convert(fallback_options)
-                gc.collect() # 再次清理
                 return result
             except Exception as final_e:
-                gc.collect()
                 return f"彻底解析失败 (含降级尝试): {final_e}"
-        
-        gc.collect()
         return f"Docling conversion failed: {e}"
 
 # 按文本块截取关键段落，保留更多信息但是消耗过多的token
