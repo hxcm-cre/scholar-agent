@@ -12,19 +12,31 @@ import os
 import time
 import traceback
 from collections import defaultdict
+from datetime import timedelta
 from typing import Any, Dict, List
 
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, Depends, FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from database import Project, Literature, Report, SessionLocal, get_db, init_db
+from database import Project, Literature, Report, SessionLocal, get_db, init_db, User
 from schemas import (
     NodeStatusEvent,
     ProjectDetail,
     ProjectOut,
     ResearchRequest,
+    UserCreate,
+    UserOut,
+    Token
+)
+from auth import (
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    get_current_user,
+    ACCESS_TOKEN_EXPIRE_MINUTES
 )
 
 load_dotenv()
@@ -273,14 +285,65 @@ def on_startup():
 
 
 # ---------------------------------------------------------------------------
-# REST Endpoints
+# REST Endpoints - Auth
+# ---------------------------------------------------------------------------
+@app.post("/api/auth/register", response_model=UserOut)
+def register(user_in: UserCreate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == user_in.username).first()
+    if user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    # First user becomes admin
+    is_admin = 1 if db.query(User).count() == 0 else 0
+    
+    hashed_password = get_password_hash(user_in.password)
+    new_user = User(
+        username=user_in.username,
+        password_hash=hashed_password,
+        is_admin=is_admin
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return dict(id=new_user.id, username=new_user.username, is_admin=bool(new_user.is_admin), created_at=new_user.created_at)
+
+@app.post("/api/auth/login", response_model=Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/api/auth/me", response_model=UserOut)
+def read_users_me(current_user: User = Depends(get_current_user)):
+    return dict(id=current_user.id, username=current_user.username, is_admin=bool(current_user.is_admin), created_at=current_user.created_at)
+
+@app.get("/api/admin/users", response_model=List[UserOut])
+def list_all_users(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    users = db.query(User).all()
+    return [dict(id=u.id, username=u.username, is_admin=bool(u.is_admin), created_at=u.created_at) for u in users]
+
+
+# ---------------------------------------------------------------------------
+# REST Endpoints - Projects
 # ---------------------------------------------------------------------------
 @app.post("/api/research", response_model=ProjectOut)
-async def create_research(req: ResearchRequest, bg: BackgroundTasks, db: Session = Depends(get_db)):
+async def create_research(req: ResearchRequest, bg: BackgroundTasks, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Create a project and start the agent in background."""
     import json as _json
 
     project = Project(
+        user_id=current_user.id,
         query=req.query,
         model_name=req.model_name,
         status="pending",
@@ -297,27 +360,25 @@ async def create_research(req: ResearchRequest, bg: BackgroundTasks, db: Session
 
 
 @app.get("/api/projects", response_model=list[ProjectOut])
-def list_projects(db: Session = Depends(get_db)):
-    """Return all projects, newest first."""
-    return db.query(Project).order_by(Project.created_at.desc()).all()
+def list_projects(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return all projects for the current user, newest first."""
+    return db.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).all()
 
 
 @app.get("/api/projects/{project_id}", response_model=ProjectDetail)
-def get_project(project_id: int, db: Session = Depends(get_db)):
+def get_project(project_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Return full project detail including literature and reports."""
-    proj = db.query(Project).filter(Project.id == project_id).first()
+    proj = db.query(Project).filter(Project.id == project_id, Project.user_id == current_user.id).first()
     if not proj:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Project not found")
     return proj
 
 
 @app.delete("/api/projects/{project_id}")
-def delete_project(project_id: int, db: Session = Depends(get_db)):
+def delete_project(project_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Delete project and all related data."""
-    proj = db.query(Project).filter(Project.id == project_id).first()
+    proj = db.query(Project).filter(Project.id == project_id, Project.user_id == current_user.id).first()
     if not proj:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Project not found")
     db.delete(proj)
     db.commit()

@@ -109,6 +109,48 @@ npm run dev
 现在请打开浏览器并访问 **[http://localhost:3000](http://localhost:3000)**，即可开始使用该平台。
 ---
 
+## 🔐 用户系统与内测模式
+
+本项目现已集成完整的用户注册与登录系统。处于**内测版本**，您只需在后端配置 `OPENAI_API_KEY`，其他用户无需输入 Key 即可注册使用。
+
+- **管理员视角**：第一个注册的用户将自动获得管理员权限，可访问 `/admin` 查看用户列表。
+- **数据隔离**：每个用户只能看到并管理自己的研究项目。
+
+---
+
+## ☁️ 云端部署指南
+
+您可以按照以下步骤将 Scholar-Agent 部署到云端，供全球用户访问。
+
+### 1. 后端部署 (Render)
+1. 在 [Render.com](https://render.com) 创建一个新的 **Web Service**。
+2. 连接您的 GitHub 仓库，并选择 `backend` 目录。
+3. **Runtime**: `Python 3`
+4. **Build Command**: `pip install -r requirements.txt`
+5. **Start Command**: `uvicorn server:app --host 0.0.0.0 --port $PORT`
+6. **Environment Variables**:
+   - `OPENAI_API_KEY`: 您的 API Key
+   - `SECRET_KEY`: 随机长的字符串 (用于 JWT)
+   - `DATABASE_URL`: (可选) 若使用外部 Postgres，否则默认使用 SQLite 文件。
+
+### 2. 前端部署 (Vercel)
+1. 在 [Vercel](https://vercel.com) 创建新项目。
+2. 选择 `frontend` 目录。
+3. **Framework Preset**: `Vite`
+4. **Build Command**: `npm run build`
+5. **Output Directory**: `dist`
+6. **Environment Variables**:
+   - `VITE_API_BASE_URL`: 填写您在 Render 部署后的后端链接 (例如 `https://your-backend.onrender.com`)。
+7. **重要配置**: 在项目根目录或 `frontend` 目录下创建 `vercel.json` 以处理 SPA 路由重定向：
+   ```json
+   {
+     "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+   }
+   ```
+
+---
+
 <div align="center">
 Made with ❤️ for Researchers. 用人工智能加速人类科学进程。
 </div>
+

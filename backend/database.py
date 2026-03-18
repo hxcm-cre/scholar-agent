@@ -15,6 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import (
     DeclarativeBase, Session, relationship, sessionmaker,
 )
+from passlib.context import CryptContext
 
 # ---------------------------------------------------------------------------
 # Engine & session
@@ -54,10 +55,23 @@ class Base(DeclarativeBase):
     pass
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(50), unique=True, index=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    is_admin = Column(Integer, default=0) # 0 for false, 1 for true
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
+
+
 class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     query = Column(Text, nullable=False)
     model_name = Column(String(128), default="qwen2.5-32b-instruct")
     status = Column(String(32), default="pending")  # pending / running / done / error
@@ -71,6 +85,7 @@ class Project(Base):
                               cascade="all, delete-orphan")
     reports = relationship("Report", back_populates="project",
                            cascade="all, delete-orphan")
+    user = relationship("User", back_populates="projects")
 
 
 class Literature(Base):

@@ -61,3 +61,16 @@ export interface NodeStatusEvent {
   detail: string;
   progress: number;
 }
+
+export interface User {
+  id: number;
+  username: string;
+  is_admin: boolean;
+  created_at: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+}
+
