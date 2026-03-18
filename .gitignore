@@ -1,4 +1,4 @@
-# Deployment guides (User requested not to commit)
+# Deployment guides
 DEPLOYMENT_ZH.md
 
 # Local database
@@ -11,9 +11,29 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
+.venv/
+ENV/
+env/
 .env
+*.env
+build/
+*.egg-info/
+
+# Logs & Metrics
+*.log
+metrics_log.json
+.langgraph/
+
+# Editor & System
+.vscode/
+.cursor/
+.idea/
+.DS_Store
+Thumbs.db
 
 # Node
 node_modules/
 dist/
-.DS_Store
+
+# Tools
+.streamlit/
