@@ -5,7 +5,7 @@
 
 import type { Project, ProjectDetail, ResearchRequest, NodeStatusEvent } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '') || '/api';
 
 // ---------------------------------------------------------------------------
 // REST helpers
@@ -61,9 +61,22 @@ export function connectWebSocket(
   onMessage: (evt: NodeStatusEvent) => void,
   onClose?: () => void,
 ): WebSocket {
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const host = window.location.host; // works with Vite proxy
-  const ws = new WebSocket(`${proto}://${host}/ws/research/${projectId}`);
+  let wsUrl: string;
+  const apiRoot = import.meta.env.VITE_API_BASE_URL || '';
+
+  if (apiRoot.startsWith('http')) {
+    // Production / External URL
+    const url = new URL(apiRoot);
+    const proto = url.protocol === 'https:' ? 'wss' : 'ws';
+    wsUrl = `${proto}://${url.host}/ws/research/${projectId}`;
+  } else {
+    // Relative or Local
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = window.location.host;
+    wsUrl = `${proto}://${host}/ws/research/${projectId}`;
+  }
+
+  const ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
     // Send a ping to keep connection alive

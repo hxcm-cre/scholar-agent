@@ -62,4 +62,21 @@
 
 ---
 
+## 5. 常见问题排查 (Troubleshooting)
+
+### 🔴 错误：`Failed to execute 'json' on 'Response': Unexpected end of JSON input`
+如果您在注册或登录时遇到此错误，通常是因为前端**没有正确连接到后端**。
+
+*   **原因**：前端代码在 Vercel 运行时默认寻找自身的 `/api` 路径，但 Vercel 上并没有后端程序，导致返回了 HTML（错误页面）而不是 JSON，解析失败。
+*   **解决方法**：
+    1.  前往 Vercel 项目控制台：**Settings > Environment Variables**。
+    2.  检查是否添加了 `VITE_API_BASE_URL`。
+    3.  确保其值是您的 **Render 后端完整地址**（例如 `https://xxx.onrender.com`）。
+    4.  **重要**：添加环境变量后，您需要重新部署 (Redeploy) 才能生效。
+
+### 🔴 错误：`405 Method Not Allowed`
+这通常与上述原因相同，或是跨域 (CORS) 配置不正确。请确保 Render 端的 `CORS_ORIGINS` 包含您的 Vercel 域名。
+
+---
+
 祝您的项目圆满上线！

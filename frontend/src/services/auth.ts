@@ -1,6 +1,8 @@
 import type { User, AuthResponse } from '../types';
 
-const API_BASE = '/api/auth';
+const API_ROOT = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+const API_BASE = `${API_ROOT}/api/auth`;
+const ADMIN_BASE = `${API_ROOT}/api/admin`;
 
 export async function login(username: string, password: string): Promise<AuthResponse> {
   const formData = new URLSearchParams();
@@ -14,8 +16,13 @@ export async function login(username: string, password: string): Promise<AuthRes
   });
 
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.detail || 'Login failed');
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const error = await res.json();
+      throw new Error(error.detail || 'Login failed');
+    } else {
+      throw new Error(`连接服务器失败 (${res.status})。请检查 VITE_API_BASE_URL 配置。`);
+    }
   }
 
   const data = await res.json();
@@ -31,12 +38,18 @@ export async function register(username: string, password: string): Promise<User
   });
 
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.detail || 'Registration failed');
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const error = await res.json();
+      throw new Error(error.detail || 'Registration failed');
+    } else {
+      throw new Error(`注册失败 (${res.status})：服务器返回了非 JSON 响应。请确保后端 URL 正确。`);
+    }
   }
 
   return res.json();
 }
+
 
 export async function getCurrentUser(): Promise<User> {
   const token = localStorage.getItem('token');
@@ -64,7 +77,7 @@ export function getToken(): string | null {
 
 export async function getAdminUsers(): Promise<User[]> {
   const token = localStorage.getItem('token');
-  const res = await fetch('/api/admin/users', {
+  const res = await fetch(`${ADMIN_BASE}/users`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
