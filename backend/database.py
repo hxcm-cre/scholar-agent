@@ -42,8 +42,10 @@ if DATABASE_URL.startswith("sqlite"):
         cursor.execute("PRAGMA journal_mode=WAL;")
         cursor.close()
 else:
-    # PostgreSQL engine
-    engine = create_engine(DATABASE_URL, echo=False)
+    # PostgreSQL engine (Supabase Transaction Mode 6543)
+    # Add pool_pre_ping=True to check connection health (prevents "Server closed the connection unexpectedly" errors)
+    engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
+
 
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)

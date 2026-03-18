@@ -54,17 +54,18 @@
 2.  **内测模式**：您的 `OPENAI_API_KEY` 已在后端安全配置。其他用户注册并登录后即可直接运行研究任务，无需再输入 API Key。
 3.  **本地 Zotero 说明**：云端版本无法直接搜索您的本地电脑 Zotero。建议用户使用 `ZOTERO_USER_ID` 和 `ZOTERO_API_KEY` （如需共享文献库）。
 
-### 3. 数据库持久化 (Supabase PostgreSQL)
+### 3. 数据库持久化 (Supabase Transaction Mode)
 
-为了防止 Render 重新部署或休眠时丢失用户数据，建议使用 Supabase 的 PostgreSQL。
+为了在 Render 等高并发环境中使用 Supabase，建议使用 **Transaction Mode (端口 6543)**：
 
 1.  在 [Supabase](https://supabase.com) 创建新项目。
 2.  进入 **Project Settings > Database**。
-3.  找到 **Connection string**，选择 **URI**。
-4.  复制类似于 `postgres://postgres.[YOUR-ID]:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres` 的字符串。
+3.  在 **Connection string** 部分，选择 **Transaction mode**。
+4.  复制类似于 `postgresql+psycopg2://postgres.[ID]:[PASSWORD]@aws-0-xx.pooler.supabase.com:6543/postgres?sslmode=require` 的 URI。
 5.  在 **Render** 的环境变量中添加：
     *   `DATABASE_URL`: 填入上述复制的 URI。
-    *   (后端代码已自动处理 `postgres://` 到 `postgresql://` 的转换)
+    *   (由于使用了端口 6543，后端代码已自动启用 `pool_pre_ping=True` 以处理连接池健康检查)。
+
 
 ---
 
