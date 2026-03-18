@@ -5,7 +5,8 @@
 
 import type { Project, ProjectDetail, ResearchRequest, NodeStatusEvent } from '../types';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '') || '/api';
+const API_ROOT = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+const API_BASE = `${API_ROOT}/api`;
 
 // ---------------------------------------------------------------------------
 // REST helpers

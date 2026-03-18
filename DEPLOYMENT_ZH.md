@@ -74,8 +74,14 @@
     3.  确保其值是您的 **Render 后端完整地址**（例如 `https://xxx.onrender.com`）。
     4.  **重要**：添加环境变量后，您需要重新部署 (Redeploy) 才能生效。
 
-### 🔴 错误：`405 Method Not Allowed`
-这通常与上述原因相同，或是跨域 (CORS) 配置不正确。请确保 Render 端的 `CORS_ORIGINS` 包含您的 Vercel 域名。
+### 🔴 错误：`405 Method Not Allowed` / `404 Not Found` (对于 `/projects` 或 `/research`)
+这通常是由于前端请求的路径不正确导致的。
+*   **修复**：代码已统一适配。请确保您的 `VITE_API_BASE_URL` **只包含主域名**（例如 `https://xxx.onrender.com`），不要在末端添加 `/api`，代码会自动补全。
+
+### 🔴 数据库持久化提示 (重要)
+Render 的免费版和基础版实例在每次自动休眠或重新部署时会**清空文件系统**。
+*   如果您发现注册过的账号“消失”了，是因为 SQLite 文件被重置。
+*   **解决方法**：在 Render 侧边栏选择 **Disks**，创建一个挂载到 `/backend/data` (并修改代码中的 DB 路径) 的磁盘，或使用 Render 的托管 **PostgreSQL** 服务。
 
 ---
 
