@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import ReactMarkdown from 'react-markdown';
-import { Download, BarChart3, ShieldCheck, ArrowLeft, Loader2, BookOpen } from 'lucide-react';
+import { Download, BarChart3, ShieldCheck, ArrowLeft, Loader2, BookOpen, X, ExternalLink, Highlighter } from 'lucide-react';
 import type { ProjectDetail, LiteratureItem } from '../types';
 import { getProject } from '../services/api';
 
@@ -13,6 +13,8 @@ interface ResearchReportProps {
 export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBack }) => {
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedPaper, setSelectedPaper] = useState<LiteratureItem | null>(null);
+
 
   const load = async () => {
     try {
@@ -122,13 +124,22 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
                         {lit.venue && <span>{lit.venue}</span>}
                       </p>
                     </div>
-                    <div className="flex gap-3 shrink-0 text-[10px] text-slate-400">
-                      {lit.citations > 0 && <span>🔗 {lit.citations}</span>}
-                      {lit.score > 0 && <span>⭐ {lit.score.toFixed(2)}</span>}
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <div className="flex gap-3 text-[10px] text-slate-400">
+                        {lit.citations > 0 && <span>🔗 {lit.citations}</span>}
+                        {lit.score > 0 && <span>⭐ {lit.score.toFixed(2)}</span>}
+                      </div>
+                      <button
+                        onClick={() => setSelectedPaper(lit)}
+                        className="flex items-center gap-1 text-[10px] bg-[#22d3ee]/10 text-[#22d3ee] px-2 py-1 rounded hover:bg-[#22d3ee]/20 transition-colors"
+                      >
+                        <Highlighter size={10} /> 查看原文
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
+
             </div>
           </div>
         )}
@@ -210,13 +221,149 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
           </div>
         )}
 
-        <div className="mt-6 text-center">
-          <p className="text-slate-400 text-xs flex items-center justify-center gap-2">
-            <ShieldCheck size={14} />
-            All research data is processed via RAG-enabled Docling architecture.
-          </p>
-        </div>
       </div>
+
+      {/* Side Drawer */}
+      {selectedPaper && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedPaper(null)} />
+          <div className="relative w-full max-w-6xl bg-white shadow-2xl flex flex-col animate-drawer-in">
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-[#1a2b4c] truncate">{selectedPaper.title}</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {selectedPaper.authors} · {selectedPaper.year} · {selectedPaper.venue}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 ml-4">
+                {selectedPaper.url && (
+                  <a
+                    href={selectedPaper.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#22d3ee] transition-colors"
+                  >
+                    <ExternalLink size={14} /> 源文件
+                  </a>
+                )}
+                <button
+                  onClick={() => setSelectedPaper(null)}
+                  className="p-2 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Split View Content */}
+            <div className="flex-1 flex overflow-hidden">
+              {/* Left Column: AI Summary/Metrics */}
+              <div className="w-[400px] border-r border-slate-100 bg-slate-50/30 overflow-y-auto p-6 custom-scrollbar">
+                <h3 className="text-sm font-bold text-[#1a2b4c] uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-[#22d3ee]" />
+                  AI 提取指标 & 摘要
+                </h3>
+                
+                <div className="space-y-6">
+                  <section>
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">摘要 (Abstract)</h4>
+                    <div className="text-sm text-slate-600 leading-relaxed bg-white p-4 rounded-xl border border-slate-100">
+                      {selectedPaper.abstract || '暂无摘要'}
+                    </div>
+                  </section>
+
+                  {/* Show matching metrics from the report if any */}
+                  {(() => {
+                    const metrics = JSON.parse(report?.metrics_json || '{}');
+                    // Find if there are specific paper metrics for this title
+                    // Note: This requires the backend to store metrics per paper title or ID
+                    // For now, we can show general project metrics or search key info
+                    return (
+                      <section>
+                        <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">研究指标</h4>
+                        <div className="bg-white p-4 rounded-xl border border-slate-100 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-slate-500">论文评分</span>
+                            <span className="text-xs font-bold text-[#1a2b4c] bg-slate-100 px-2 py-0.5 rounded">
+                              {selectedPaper.score.toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-slate-500">引用量</span>
+                            <span className="text-xs font-bold text-[#1a2b4c]">{selectedPaper.citations}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-slate-500">发布平台/分级</span>
+                            <span className="text-xs font-bold text-[#22d3ee]">{selectedPaper.venue}</span>
+                          </div>
+                        </div>
+                      </section>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Right Column: Full Markdown with Highlighting */}
+              <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-white">
+                <div className="prose prose-slate max-w-none">
+                  <ReactMarkdown
+                    components={{
+                      code: ({node, className, children, ...props}) => {
+                        const content = String(children);
+                        // Simple highlighting within code blocks if needed, 
+                        // but usually it's better to keep code clean.
+                        return <code className={className} {...props}>{children}</code>;
+                      },
+                      // We can use a custom renderer for text to implement highlighting
+                      p: ({children}) => {
+                        return <p>{highlightText(children, project?.query || '', project?.user_metrics || '')}</p>;
+                      },
+                      li: ({children}) => {
+                        return <li>{highlightText(children, project?.query || '', project?.user_metrics || '')}</li>;
+                      },
+                      h1: ({children}) => <h1 className="text-2xl font-bold text-[#1a2b4c] mt-8 mb-4">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h1>,
+                      h2: ({children}) => <h2 className="text-xl font-bold text-[#1a2b4c] mt-6 mb-3">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h2>,
+                      h3: ({children}) => <h3 className="text-lg font-bold text-[#1a2b4c] mt-4 mb-2">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h3>,
+                    }}
+                  >
+                    {selectedPaper.full_text || '> ⚠️ 未提取到全文内容，仅展示摘要。\n\n' + selectedPaper.abstract}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
+
+/**
+ * Helper to highlight keywords and metrics in text
+ */
+function highlightText(children: any, query: string, metrics: string) {
+  if (typeof children !== 'string') return children;
+
+  const queryStr = query || '';
+  const metricsStr = metrics || '';
+
+  const keywords = [
+    ...queryStr.split(/\s+/).filter(k => k.length > 2),
+    ...metricsStr.split(/[,，]/).map(m => m.trim()).filter(m => m.length > 0)
+  ];
+
+  if (keywords.length === 0) return children;
+
+  // Create a regex to match any of the keywords
+  const regex = new RegExp(`(${keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  const parts = children.split(regex);
+
+  return parts.map((part, i) => 
+    regex.test(part) ? (
+      <mark key={i} className="bg-yellow-200 text-[#1a2b4c] px-0.5 rounded font-medium">
+        {part}
+      </mark>
+    ) : part
+  );
+}

@@ -43,6 +43,7 @@ class LiteratureOut(BaseModel):
     citations: int
     score: float
     source: str
+    full_text: str = ""
 
     class Config:
         from_attributes = True

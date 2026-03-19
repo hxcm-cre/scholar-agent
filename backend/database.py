@@ -94,6 +94,7 @@ class Literature(Base):
     citations = Column(Integer, default=0)
     score = Column(Float, default=0.0)
     source = Column(String(32), default="arxiv")  # zotero / arxiv
+    full_text = Column(Text, default="")
 
     project = relationship("Project", back_populates="literature")
 

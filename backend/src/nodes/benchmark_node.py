@@ -81,25 +81,25 @@ def _smart_extract_markdown(source: str | bytes) -> str:
         pipeline_options.ocr_options = RapidOcrOptions(force_full_page_ocr=False)
         pipeline_options.num_threads = 1 # 限制线程减少瞬时内存占用
 
-    def try_convert(options):
+    def try_convert(options, max_pages):
         conv = DocumentConverter(
             format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=options)}
         )
-        return conv.convert(source,max_num_pages=50).document.export_to_markdown()
+        return conv.convert(source, max_num_pages=max_pages).document.export_to_markdown()
 
     # 3. 实施“软着陆”尝试循环
     try:
-        return try_convert(pipeline_options)
+        return try_convert(pipeline_options, max_pages=30)
     except Exception as e:
         error_str = str(e).lower()
         # 捕捉内存溢出关键词
-        if "bad_alloc" in error_str or "runtimeerror" in error_str:
-            print(f"⚠️ OCR 内存溢出，正在实施软着陆降级解析...")
-            # 降级：强制关闭 OCR 并重新尝试
+        if any(kw in error_str for kw in ["bad_alloc", "out of memory", "runtimeerror"]):
+            print(f"⚠️ OCR 内存溢出或解析错误，正在实施软着陆降级解析... (Error: {e})")
+            # 降级：强制关闭 OCR 并减少页数重新尝试
             fallback_options = PdfPipelineOptions()
             fallback_options.do_ocr = False
             try:
-                return try_convert(fallback_options)
+                return try_convert(fallback_options, max_pages=20)
             except Exception as final_e:
                 return f"彻底解析失败 (含降级尝试): {final_e}"
         return f"Docling conversion failed: {e}"
@@ -157,10 +157,17 @@ def _paper_full_text(paper: Dict[str, Any], regex_patterns: List[str]) -> str:
         if isinstance(raw.get("openAccessPdf"), dict):
             pdf_url = (raw["openAccessPdf"].get("url") or "").strip()
         pdf_url = pdf_url or (raw.get("pdfUrl") or raw.get("URL") or paper.get("url") or "").strip()
-    if pdf_url and pdf_url.lower().endswith(".pdf"):
-        md = _smart_extract_markdown(pdf_url)
-        if "Error" not in md[:10]:
-            return _filter_relevant_context_dynamic(md, regex_patterns)
+    if pdf_url:
+        low_url = pdf_url.lower()
+        if "arxiv.org/abs/" in low_url:
+            pdf_url = pdf_url.replace("/abs/", "/pdf/")
+            if not pdf_url.lower().endswith(".pdf"):
+                pdf_url += ".pdf"
+
+        if pdf_url.lower().endswith(".pdf") or "arxiv.org/pdf/" in pdf_url.lower():
+            md = _smart_extract_markdown(pdf_url)
+            if "Error" not in md[:10]:
+                return _filter_relevant_context_dynamic(md, regex_patterns)
     
     # 2) 尝试 HTML
     url = (paper.get("url") or "").strip()
@@ -305,7 +312,7 @@ def benchmark_node(state: AgentState) -> Dict[str, Any]:
     lines.append(f"**Target Metrics**: {', '.join([f'`{m}`' for m in domain_metrics])}\n")
     
     # Get all accumulated papers (not just current top_tier_papers) to display in literature section
-    all_accumulated_papers = state.get("candidate_papers", [])[:15] if not top_papers and iteration > 1 else top_papers
+    all_accumulated_papers = state.get("candidate_papers", [])[:10] if not top_papers and iteration > 1 else top_papers
     
     # --- 论文引用列表 ---
     lines.append("## 📚 Key Literature & Venues")
@@ -315,7 +322,7 @@ def benchmark_node(state: AgentState) -> Dict[str, Any]:
             # Fallback to display extracted results if top_papers is entirely empty
             display_papers = extracted_results
             
-        for i, p in enumerate(display_papers[:15], 1):
+        for i, p in enumerate(display_papers[:10], 1):
             info = f"{p.get('venue') or p.get('venue_type', 'N/A')}, {p.get('year', 'N/A')}"
             rank = f"`{p.get('venue_type', 'N/A')}-{p.get('venue_rank', 'N/A')}`"
 

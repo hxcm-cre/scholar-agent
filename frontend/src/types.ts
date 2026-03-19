@@ -25,6 +25,7 @@ export interface Project {
   status: 'pending' | 'running' | 'done' | 'error';
   error_message: string | null;
   weights_json: string;
+  user_metrics: string;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +42,7 @@ export interface LiteratureItem {
   citations: number;
   score: number;
   source: string;
+  full_text: string;
 }
 
 export interface ReportItem {

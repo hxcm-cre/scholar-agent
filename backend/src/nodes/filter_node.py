@@ -159,13 +159,20 @@ def _paper_full_text(paper: Dict[str, Any], regex_patterns: List[str]) -> str:
         if isinstance(raw.get("openAccessPdf"), dict):
             pdf_url = (raw["openAccessPdf"].get("url") or "").strip()
         pdf_url = pdf_url or (raw.get("pdfUrl") or raw.get("URL") or paper.get("url") or "").strip()
-    if pdf_url and pdf_url.lower().endswith(".pdf"):
-        md = _smart_extract_markdown(pdf_url)
-        if "Error" not in md[:10]:
-            if regex_patterns==[]:
-                return md
-            else:
-                return _filter_relevant_context_dynamic(md, regex_patterns)
+    if pdf_url:
+        low_url = pdf_url.lower()
+        if "arxiv.org/abs/" in low_url:
+            pdf_url = pdf_url.replace("/abs/", "/pdf/")
+            if not pdf_url.lower().endswith(".pdf"):
+                pdf_url += ".pdf"
+        
+        if pdf_url.lower().endswith(".pdf") or "arxiv.org/pdf/" in pdf_url.lower():
+            md = _smart_extract_markdown(pdf_url)
+            if "Error" not in md[:10]:
+                if regex_patterns==[]:
+                    return md
+                else:
+                    return _filter_relevant_context_dynamic(md, regex_patterns)
     
     # 2) 尝试 HTML
     url = (paper.get("url") or "").strip()
@@ -215,27 +222,25 @@ def _smart_extract_markdown(source: str | bytes) -> str:
         pipeline_options.ocr_options = RapidOcrOptions(force_full_page_ocr=False)
         pipeline_options.num_threads = 1 # 限制线程减少瞬时内存占用
 
-    def try_convert(options):
+    def try_convert(options, max_pages):
         conv = DocumentConverter(
             format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=options)}
         )
-        # 降级：将最大处理页数从 50 降低到 30，以节省内存
-        return conv.convert(source, max_num_pages=50).document.export_to_markdown()
+        return conv.convert(source, max_num_pages=max_pages).document.export_to_markdown()
 
     # 3. 实施“软着陆”尝试循环
     try:
-        return try_convert(pipeline_options)
+        return try_convert(pipeline_options, max_pages=30)
     except Exception as e:
         error_str = str(e).lower()
         # 捕捉内存溢出关键词 (bad_alloc, out of memory, runtimeerror)
         if any(kw in error_str for kw in ["bad_alloc", "out of memory", "runtimeerror"]):
             print(f"⚠️ OCR 内存溢出或解析错误，正在实施软着陆降级解析... (Error: {e})")
-            # 降级：强制关闭 OCR 并重新尝试
+            # 降级：强制关闭 OCR 并减少页数重新尝试
             fallback_options = PdfPipelineOptions()
             fallback_options.do_ocr = False
             try:
-                result = try_convert(fallback_options)
-                return result
+                return try_convert(fallback_options, max_pages=20)
             except Exception as final_e:
                 return f"彻底解析失败 (含降级尝试): {final_e}"
         return f"Docling conversion failed: {e}"
@@ -404,7 +409,7 @@ def filter_node(state: AgentState) -> Dict[str, Any]: # 过滤论文
     ]
 
     ranked = score_papers(unique_candidates, query_keywords, **weights)
-    top = ranked[:15] # 获取得分最高的论文
+    top = ranked[:10] # 获取得分最高的论文
     # 更新已处理名单：将本轮选出的 top 论文标题加入历史记录
     new_titles = [p.get("title", "").strip().lower() for p in top]
     #updated_history = list(history_titles.union(new_titles))

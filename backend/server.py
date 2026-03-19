@@ -220,6 +220,7 @@ def _run_agent_sync(project_id: int, req: ResearchRequest):
                 citations=int(paper.get("citationCount", paper.get("citations", 0)) or 0),
                 score=float(paper.get("_score", paper.get("score", 0)) or 0),
                 source=paper.get("source", "arxiv"),
+                full_text=paper.get("full_text_cache", ""),
             )
             db.add(lit)
 
