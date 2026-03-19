@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Search, UploadCloud, Rocket, ChevronDown, ArrowLeft } from 'lucide-react';
-import type { ResearchWeights } from '../types';
+import { getAvailableModels } from '../services/api';
+import type { ResearchWeights, ModelOption } from '../types';
 
 interface ResearchConfigProps {
   onSubmit: (query: string, modelName: string, weights: ResearchWeights, useOcr: boolean, userMetrics: string, csvData: string | null) => void;
@@ -8,18 +9,14 @@ interface ResearchConfigProps {
   isSubmitting: boolean;
 }
 
-const MODEL_OPTIONS = [
-  'qwen3.5-flash',
-  'qwen2.5-14b-instruct',
-  'qwen2-57b-a14b-instruct',
-  'qwen3-coder-30b-a3b-instruct',
-];
+// Models are now fetched from the backend
 
 export const ResearchConfig: React.FC<ResearchConfigProps> = ({ onSubmit, onBack, isSubmitting }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [userMetrics, setUserMetrics] = useState('');
-  const [model, setModel] = useState(MODEL_OPTIONS[0]);
+  const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
+  const [model, setModel] = useState('');
   const [customModel, setCustomModel] = useState('');
   const [useOcr, setUseOcr] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -29,6 +26,19 @@ export const ResearchConfig: React.FC<ResearchConfigProps> = ({ onSubmit, onBack
     citation: 0.1,
     repro: 0.1,
   });
+
+  useEffect(() => {
+    async function loadModels() {
+      try {
+        const { models } = await getAvailableModels();
+        setModelOptions(models);
+        if (models.length > 0) setModel(models[0].id);
+      } catch (e) {
+        console.error('Failed to load models', e);
+      }
+    }
+    loadModels();
+  }, []);
 
   const finalModel = customModel || model;
 
@@ -121,7 +131,7 @@ export const ResearchConfig: React.FC<ResearchConfigProps> = ({ onSubmit, onBack
                     onChange={(e) => setModel(e.target.value)}
                     className="w-full bg-white border border-slate-200 rounded-lg py-2.5 px-3 text-sm appearance-none outline-none focus:border-[#1a2b4c]"
                   >
-                    {MODEL_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
+                    {modelOptions.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                   </select>
                   <ChevronDown size={16} className="absolute right-3 top-3 text-slate-400 pointer-events-none" />
                 </div>

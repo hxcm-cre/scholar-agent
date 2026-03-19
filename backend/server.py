@@ -20,12 +20,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from database import Project, Literature, Report, SessionLocal, get_db, init_db
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from src.llm import make_qwen_llm
 from schemas import (
     NodeStatusEvent,
     ProjectDetail,
     ProjectOut,
     ResearchRequest,
+    PaperChatRequest,
+    PaperNoteRequest,
 )
+from models_config import AVAILABLE_MODELS
 
 load_dotenv()
 
@@ -33,6 +38,11 @@ load_dotenv()
 # App
 # ---------------------------------------------------------------------------
 app = FastAPI(title="Scholar-Agent API", version="1.0.0")
+
+@app.get("/api/models")
+def get_available_models():
+    """List all available AI models for both search and chat."""
+    return {"models": AVAILABLE_MODELS}
 
 # Allow origins from environment variable, stripping spaces
 cors_env = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
@@ -332,6 +342,65 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
     db.delete(proj)
     db.commit()
     return {"detail": "deleted"}
+
+
+@app.post("/api/lit/chat")
+async def paper_chat(req: PaperChatRequest, db: Session = Depends(get_db)):
+    """Localized chat with a specific paper's full text."""
+    lit = db.query(Literature).filter(Literature.id == req.literature_id).first()
+    if not lit:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    
+    if not lit.full_text:
+        # Fallback to abstract if full text is missing
+        context = f"Title: {lit.title}\nAbstract: {lit.abstract}"
+    else:
+        context = lit.full_text
+
+    system_prompt = f"""你现在是一个学术审阅助理。你唯一可以引用的知识来源是以下提供的 <Fulltext_Markdown>。
+回答用户提问的问题需要基于原文的信息。如果用户提问的问题在原文中没有提及，可以适当扩展，但是不要编造。
+
+<Fulltext_Markdown>
+{context}
+</Fulltext_Markdown>
+"""
+    
+    messages = [SystemMessage(content=system_prompt)]
+    for m in req.history:
+        if m["role"] == "user":
+            messages.append(HumanMessage(content=m["content"]))
+        else:
+            messages.append(AIMessage(content=m["content"]))
+    
+    messages.append(HumanMessage(content=req.message))
+
+    # Use the model requested by the user
+    model_name = req.model_name
+    llm = make_qwen_llm(model_name=model_name, temperature=0.1)
+    
+    try:
+        resp = await asyncio.to_thread(llm.invoke, messages)
+        return {"answer": resp.content}
+    except Exception as e:
+        print(f"LLM Error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"LLM Error: {e}")
+
+
+@app.post("/api/lit/note")
+def save_paper_note(req: PaperNoteRequest, db: Session = Depends(get_db)):
+    """Save user note to a specific paper."""
+    lit = db.query(Literature).filter(Literature.id == req.literature_id).first()
+    if not lit:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    
+    # Append the new note to existing notes with a separator
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    new_entry = f"\n\n--- Added on {timestamp} ---\n{req.note}"
+    lit.user_notes = (lit.user_notes or "") + new_entry
+    
+    db.commit()
+    return {"status": "success", "user_notes": lit.user_notes}
 
 
 # ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@
  * Replaces the previous geminiService.ts (direct Gemini calls).
  */
 
-import type { Project, ProjectDetail, ResearchRequest, NodeStatusEvent } from '../types';
+import type { Project, ProjectDetail, ResearchRequest, NodeStatusEvent, ModelOption } from '../types';
 
 const API_ROOT = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 const API_BASE = `${API_ROOT}/api`;
@@ -49,6 +49,11 @@ export function getProject(id: number): Promise<ProjectDetail> {
 /** DELETE /api/projects/:id */
 export function deleteProject(id: number): Promise<void> {
   return request<void>(`/projects/${id}`, { method: 'DELETE' });
+}
+
+/** GET /api/models — list all available models */
+export function getAvailableModels(): Promise<{ models: ModelOption[] }> {
+  return request<{ models: ModelOption[] }>('/models');
 }
 
 // ---------------------------------------------------------------------------
@@ -104,4 +109,28 @@ export function connectWebSocket(
   }, 25_000);
 
   return ws;
+}
+
+/** POST /api/lit/chat — localized chat */
+export function chatPaper(litId: number, message: string, history: {role: string, content: string}[], modelName: string): Promise<{answer: string}> {
+  return request<{answer: string}>('/lit/chat', {
+    method: 'POST',
+    body: JSON.stringify({
+      literature_id: litId,
+      message,
+      history,
+      model_name: modelName
+    }),
+  });
+}
+
+/** POST /api/lit/note — save user note */
+export function savePaperNote(litId: number, note: string): Promise<{user_notes: string}> {
+  return request<{user_notes: string}>('/lit/note', {
+    method: 'POST',
+    body: JSON.stringify({
+      literature_id: litId,
+      note
+    }),
+  });
 }

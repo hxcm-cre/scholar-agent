@@ -28,6 +28,16 @@ class ResearchRequest(BaseModel):
     csv_data: Optional[str] = None  # base64-encoded CSV
 
 
+class PaperChatRequest(BaseModel):
+    literature_id: int
+    message: str
+    model_name: str = "qwen2.5-32b-instruct"
+    history: List[Dict[str, str]] = []
+
+class PaperNoteRequest(BaseModel):
+    literature_id: int
+    note: str
+
 # ---------------------------------------------------------------------------
 # Response
 # ---------------------------------------------------------------------------
@@ -44,6 +54,7 @@ class LiteratureOut(BaseModel):
     score: float
     source: str
     full_text: str = ""
+    user_notes: str = ""
 
     class Config:
         from_attributes = True

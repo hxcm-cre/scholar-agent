@@ -43,6 +43,7 @@ export interface LiteratureItem {
   score: number;
   source: string;
   full_text: string;
+  user_notes: string;
 }
 
 export interface ReportItem {
@@ -63,5 +64,10 @@ export interface NodeStatusEvent {
   status: string;
   detail: string;
   progress: number;
+}
+
+export interface ModelOption {
+  id: string;
+  label: string;
 }
 

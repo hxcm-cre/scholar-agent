@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import ReactMarkdown from 'react-markdown';
-import { Download, BarChart3, ShieldCheck, ArrowLeft, Loader2, BookOpen, X, ExternalLink, Highlighter } from 'lucide-react';
-import type { ProjectDetail, LiteratureItem } from '../types';
-import { getProject } from '../services/api';
+import { Download, BarChart3, ShieldCheck, ArrowLeft, Loader2, BookOpen, X, ExternalLink, Highlighter, Send, MessageSquare, Plus, Sparkles, ChevronUp, ChevronDown, Brain } from 'lucide-react';
+import type { ProjectDetail, LiteratureItem, ModelOption } from '../types';
+import { getProject, chatPaper, savePaperNote, getAvailableModels } from '../services/api';
 
 interface ResearchReportProps {
   projectId: number;
@@ -14,6 +14,24 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPaper, setSelectedPaper] = useState<LiteratureItem | null>(null);
+
+  const handleSyncToReport = async (note: string) => {
+    if (!selectedPaper || !project) return;
+    try {
+      const resp = await savePaperNote(selectedPaper.id, note);
+      // Update local state to show the new note immediately
+      setProject({
+        ...project,
+        literature: project.literature.map(lit =>
+          lit.id === selectedPaper.id ? { ...lit, user_notes: resp.user_notes } : lit
+        )
+      });
+      alert('已成功同步至研究报告！');
+    } catch (e) {
+      console.error('Failed to sync note', e);
+      alert('同步失败，请检查网络连接。');
+    }
+  };
 
 
   const load = async () => {
@@ -123,6 +141,14 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
                         {lit.year && <span>{lit.year} · </span>}
                         {lit.venue && <span>{lit.venue}</span>}
                       </p>
+                      {lit.user_notes && (
+                        <div className="mt-2 p-2 bg-blue-50/50 rounded border border-blue-100/50 text-[11px] text-slate-600">
+                          <div className="flex items-center gap-1.5 mb-1 text-blue-600 font-bold uppercase tracking-wider text-[9px]">
+                            <Sparkles size={10} /> 专家备注
+                          </div>
+                          <ReactMarkdown>{lit.user_notes}</ReactMarkdown>
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-2 shrink-0">
                       <div className="flex gap-3 text-[10px] text-slate-400">
@@ -150,12 +176,12 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
             <div className="prose prose-slate max-w-none">
               <ReactMarkdown
                 components={{
-                  h2: ({node, ...props}) => <h2 className="text-xl font-bold text-[#1a2b4c] mt-8 mb-4" {...props} />,
-                  h3: ({node, ...props}) => <h3 className="text-lg font-semibold text-[#1a2b4c] mt-6 mb-2" {...props} />,
-                  ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-2 text-slate-700" {...props} />,
-                  li: ({node, ...props}) => <li {...props} />,
-                  strong: ({node, ...props}) => <strong className="font-bold text-[#1a2b4c]" {...props} />,
-                  blockquote: ({node, ...props}) => {
+                  h2: ({ node, ...props }) => <h2 className="text-xl font-bold text-[#1a2b4c] mt-8 mb-4" {...props} />,
+                  h3: ({ node, ...props }) => <h3 className="text-lg font-semibold text-[#1a2b4c] mt-6 mb-2" {...props} />,
+                  ul: ({ node, ...props }) => <ul className="list-disc pl-5 space-y-2 text-slate-700" {...props} />,
+                  li: ({ node, ...props }) => <li {...props} />,
+                  strong: ({ node, ...props }) => <strong className="font-bold text-[#1a2b4c]" {...props} />,
+                  blockquote: ({ node, ...props }) => {
                     const { cite, ...rest } = props as any;
                     return (
                       <div className="my-6 p-5 bg-[#22d3ee]/10 border-l-4 border-[#22d3ee] rounded-r-xl">
@@ -167,7 +193,7 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
                       </div>
                     );
                   },
-                  code: ({node, className, children, ...props}) => {
+                  code: ({ node, className, children, ...props }) => {
                     if (className) {
                       return <pre className="bg-slate-50 p-4 rounded-xl text-sm overflow-x-auto"><code className={className} {...props}>{children}</code></pre>;
                     }
@@ -264,7 +290,7 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
                   <ShieldCheck size={16} className="text-[#22d3ee]" />
                   AI 提取指标 & 摘要
                 </h3>
-                
+
                 <div className="space-y-6">
                   <section>
                     <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">摘要 (Abstract)</h4>
@@ -309,22 +335,22 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
                 <div className="prose prose-slate max-w-none">
                   <ReactMarkdown
                     components={{
-                      code: ({node, className, children, ...props}) => {
+                      code: ({ node, className, children, ...props }) => {
                         const content = String(children);
                         // Simple highlighting within code blocks if needed, 
                         // but usually it's better to keep code clean.
                         return <code className={className} {...props}>{children}</code>;
                       },
                       // We can use a custom renderer for text to implement highlighting
-                      p: ({children}) => {
+                      p: ({ children }) => {
                         return <p>{highlightText(children, project?.query || '', project?.user_metrics || '')}</p>;
                       },
-                      li: ({children}) => {
+                      li: ({ children }) => {
                         return <li>{highlightText(children, project?.query || '', project?.user_metrics || '')}</li>;
                       },
-                      h1: ({children}) => <h1 className="text-2xl font-bold text-[#1a2b4c] mt-8 mb-4">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h1>,
-                      h2: ({children}) => <h2 className="text-xl font-bold text-[#1a2b4c] mt-6 mb-3">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h2>,
-                      h3: ({children}) => <h3 className="text-lg font-bold text-[#1a2b4c] mt-4 mb-2">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h3>,
+                      h1: ({ children }) => <h1 className="text-2xl font-bold text-[#1a2b4c] mt-8 mb-4">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h1>,
+                      h2: ({ children }) => <h2 className="text-xl font-bold text-[#1a2b4c] mt-6 mb-3">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h2>,
+                      h3: ({ children }) => <h3 className="text-lg font-bold text-[#1a2b4c] mt-4 mb-2">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h3>,
                     }}
                   >
                     {selectedPaper.full_text || '> ⚠️ 未提取到全文内容，仅展示摘要。\n\n' + selectedPaper.abstract}
@@ -332,6 +358,12 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
                 </div>
               </div>
             </div>
+
+            {/* Floating Paper Chat */}
+            <PaperChat
+              paper={selectedPaper}
+              onSync={handleSyncToReport}
+            />
           </div>
         </div>
       )}
@@ -339,9 +371,6 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
   );
 };
 
-/**
- * Helper to highlight keywords and metrics in text
- */
 function highlightText(children: any, query: string, metrics: string) {
   if (typeof children !== 'string') return children;
 
@@ -359,7 +388,7 @@ function highlightText(children: any, query: string, metrics: string) {
   const regex = new RegExp(`(${keywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
   const parts = children.split(regex);
 
-  return parts.map((part, i) => 
+  return parts.map((part, i) =>
     regex.test(part) ? (
       <mark key={i} className="bg-yellow-200 text-[#1a2b4c] px-0.5 rounded font-medium">
         {part}
@@ -367,3 +396,172 @@ function highlightText(children: any, query: string, metrics: string) {
     ) : part
   );
 }
+
+/**
+ * Localized AI Chat Component for a specific paper
+ */
+const PaperChat: React.FC<{
+  paper: LiteratureItem;
+  onSync: (note: string) => void;
+}> = ({ paper, onSync }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai', content: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
+  const [selectedModel, setSelectedModel] = useState('');
+
+  useEffect(() => {
+    async function loadModels() {
+      try {
+        const { models } = await getAvailableModels();
+        setModelOptions(models);
+        if (models.length > 0) setSelectedModel(models[0].id);
+      } catch (e) {
+        console.error('Failed to load models', e);
+      }
+    }
+    loadModels();
+  }, []);
+
+  const presets = [
+    { label: '📊 总结这篇论文', query: '请总结这篇论文的核心内容。' },
+  ];
+
+  const handleSend = async (text: string) => {
+    if (!text.trim() || isLoading) return;
+
+    const newMessages = [...messages, { role: 'user', content: text }] as any;
+    setMessages(newMessages);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const resp = await chatPaper(
+        paper.id,
+        text,
+        messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.content })),
+        selectedModel
+      );
+      setMessages([...newMessages, { role: 'ai', content: resp.answer }]);
+    } catch (e) {
+      console.error('Chat failed', e);
+      setMessages([...newMessages, { role: 'ai', content: '❌ 聊天请求失败，请稍后重试。' }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className={`fixed bottom-6 right-6 z-[60] flex flex-col items-end transition-all duration-300 ${isOpen ? 'w-80 h-[500px]' : 'w-12 h-12'}`}>
+      {isOpen ? (
+        <div className="w-full h-full flex flex-col glass-effect rounded-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+          {/* Header */}
+          <div className="p-4 border-b border-white/20 flex items-center justify-between bg-[#1a2b4c]/10">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#1a2b4c] to-[#22d3ee] flex items-center justify-center text-white shadow-sm">
+                <Brain size={18} />
+              </div>
+              <div>
+                <span className="font-bold text-[#1a2b4c] text-sm block leading-none">文献助理</span>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="bg-transparent border-none text-[10px] text-slate-500 p-0 h-auto focus:ring-0 cursor-pointer hover:text-[#1a2b4c] transition-colors"
+                >
+                  {modelOptions.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-black/5 rounded text-slate-500">
+              <ChevronDown size={20} />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+            {messages.length === 0 && (
+              <div className="text-center py-4">
+                <p className="text-xs text-slate-500 mb-4">您可以询问关于这篇论文的任何细节...</p>
+                <div className="space-y-2">
+                  {presets.map((p, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSend(p.query)}
+                      className="w-full text-left p-2 text-xs bg-white/50 hover:bg-white/80 border border-white/20 rounded-lg transition-colors text-slate-600 flex items-center gap-2"
+                    >
+                      <Sparkles size={12} className="text-[#22d3ee]" />
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {messages.map((m, i) => (
+              <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${m.role === 'user'
+                  ? 'bg-[#1a2b4c] text-white rounded-tr-none'
+                  : 'bg-white/80 text-slate-800 rounded-tl-none border border-white/40'
+                  }`}>
+                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                </div>
+                {m.role === 'ai' && (
+                  <button
+                    onClick={() => onSync(m.content)}
+                    className="mt-1 flex items-center gap-1 text-[10px] text-slate-400 hover:text-[#1a2b4c] transition-colors"
+                    title="同步到研究报告"
+                  >
+                    <Plus size={10} /> 同步至报告
+                  </button>
+                )}
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex items-start">
+                <div className="bg-white/80 p-3 rounded-2xl rounded-tl-none border border-white/40 animate-pulse">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" />
+                    <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.2s]" />
+                    <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <div className="p-4 bg-white/30 border-t border-white/20">
+            <div className="relative flex items-center">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
+                placeholder="在此输入问题..."
+                className="w-full bg-white/80 border-none rounded-xl py-2 pl-3 pr-10 text-xs focus:ring-2 focus:ring-[#1a2b4c]/20 outline-none"
+              />
+              <button
+                onClick={() => handleSend(input)}
+                disabled={!input.trim() || isLoading}
+                className="absolute right-2 p-1.5 bg-[#1a2b4c] text-white rounded-lg disabled:opacity-50"
+              >
+                <Send size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="w-14 h-14 bg-gradient-to-br from-[#1a2b4c] to-[#22d3ee] text-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-all duration-300 animate-pulse-subtle group border-4 border-white/50"
+          title="问问 AI 助理"
+        >
+          <div className="relative">
+            <MessageSquare size={28} className="group-hover:rotate-12 transition-transform" />
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+          </div>
+        </button>
+      )}
+    </div>
+  );
+};
