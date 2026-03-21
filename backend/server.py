@@ -156,6 +156,7 @@ def _run_agent_sync(project_id: int, req: ResearchRequest):
             "done": False,
             "metrics_log": {"total_tokens": {}, "node_durations": {}},
             "user_metrics": req.user_metrics,
+            "run_benchmark": req.run_benchmark,
         }
 
         total_steps = 6

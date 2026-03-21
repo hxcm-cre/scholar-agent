@@ -8,6 +8,53 @@ interface WorkflowStatusProps {
   onComplete: () => void;
 }
 
+const MolecularAnimation = () => (
+  <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+    <svg className="w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
+      <defs>
+        <radialGradient id="particleGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#00b5ad" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#1a2b4c" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {[...Array(15)].map((_, i) => (
+        <circle key={i} r={Math.random() * 3 + 1} fill="url(#particleGrad)">
+          <animate 
+            attributeName="cx" 
+            from={`${Math.random() * 100}%`} 
+            to={`${Math.random() * 100}%`} 
+            dur={`${Math.random() * 10 + 5}s`} 
+            repeatCount="indefinite" 
+          />
+          <animate 
+            attributeName="cy" 
+            from={`${Math.random() * 100}%`} 
+            to={`${Math.random() * 100}%`} 
+            dur={`${Math.random() * 10 + 5}s`} 
+            repeatCount="indefinite" 
+          />
+          <animate 
+            attributeName="r" 
+            values="1;4;1" 
+            dur={`${Math.random() * 4 + 2}s`} 
+            repeatCount="indefinite" 
+          />
+        </circle>
+      ))}
+      {/* Connections briefly appearing */}
+      {[...Array(8)].map((_, i) => (
+        <line key={`l-${i}`} stroke="#00b5ad" strokeWidth="0.5" strokeDasharray="4 4" opacity="0.3">
+          <animate attributeName="x1" values="20%;80%;20%" dur="15s" repeatCount="indefinite" />
+          <animate attributeName="y1" values="10%;90%;10%" dur="12s" repeatCount="indefinite" />
+          <animate attributeName="x2" values="90%;10%;90%" dur="18s" repeatCount="indefinite" />
+          <animate attributeName="y2" values="80%;20%;80%" dur="14s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0;0.4;0" dur="4s" repeatCount="indefinite" begin={`${i * 0.5}s`} />
+        </line>
+      ))}
+    </svg>
+  </div>
+);
+
 // Pipeline definition
 const PIPELINE_NODES = [
   { key: 'assistant',        label: '分析用户研究意图',         labelEn: 'Intent Analysis' },
@@ -68,85 +115,98 @@ export const WorkflowStatus: React.FC<WorkflowStatusProps> = ({ projectId, onCom
   }, [projectId]);
 
   return (
-    <div className="max-w-2xl mx-auto p-8">
+    <div className="h-full overflow-y-auto custom-scrollbar silicone-grain">
+      <div className="max-w-2xl mx-auto p-8 pt-12 pb-24">
       {/* Progress bar */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-[#1a2b4c]">
-            {completed ? '✅ 研究任务已完成' : errorMsg ? '❌ 执行出错' : '⚙️ Agent 正在执行...'}
+      <div className="mb-12 p-8 silicone-flat rounded-[2rem] border border-white/50 relative overflow-hidden">
+        {!completed && !errorMsg && <MolecularAnimation />}
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-4">
+          <span className="text-sm font-black text-[#1a2b4c] tracking-tight uppercase">
+            {completed ? '🎉 研究任务已圆满完成' : errorMsg ? '❌ 系统指令执行中断' : '🚀 智行 Agent 深度研析中...'}
           </span>
-          <span className="text-sm font-mono text-slate-500">{Math.round(progress * 100)}%</span>
+          <span className="text-sm font-black text-[#00b5ad] bg-[#00b5ad]/10 px-3 py-1 rounded-full">{Math.round(progress * 100)}%</span>
         </div>
-        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div className="w-full h-3 bg-white/50 rounded-full overflow-hidden border border-white p-0.5 shadow-inner">
           <div
-            className={`h-full rounded-full transition-all duration-700 ease-out ${
-              errorMsg ? 'bg-red-400' : completed ? 'bg-emerald-400' : 'bg-[#22d3ee]'
+            className={`h-full rounded-full transition-all duration-1000 ease-in-out shadow-sm ${
+              errorMsg ? 'bg-gradient-to-r from-red-400 to-red-600' : completed ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-[#1a2b4c] to-[#00b5ad]'
             }`}
             style={{ width: `${progress * 100}%` }}
           />
         </div>
+        </div>
       </div>
 
       {errorMsg && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-          <AlertTriangle size={16} className="inline mr-2" />
-          {errorMsg}
+        <div className="mb-8 p-6 bg-red-50 border border-red-100 rounded-3xl text-sm text-red-700 flex items-start gap-3 shadow-sm animate-bounce">
+          <AlertTriangle size={20} className="shrink-0" />
+          <p className="font-medium">{errorMsg}</p>
         </div>
       )}
 
       {/* Pipeline visualization */}
-      <div className="space-y-1">
+      <div className="space-y-4">
         {PIPELINE_NODES.map((node, i) => {
           const state = nodeStates[node.key];
           return (
-            <div key={node.key}>
-              <div className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-300 ${
-                state === 'done' ? 'bg-emerald-50' :
-                state === 'running' ? 'bg-blue-50 shadow-sm' :
-                'bg-slate-50'
+            <div key={node.key} className="relative">
+              {/* Connector line background */}
+               {i < PIPELINE_NODES.length - 1 && (
+                <div className="absolute left-[29px] top-[50px] w-0.5 h-10 bg-slate-200" />
+              )}
+
+              <div className={`relative flex items-center gap-6 p-6 rounded-[2rem] transition-all duration-500 border border-white/50 ${
+                state === 'done' ? 'bg-white shadow-sm scale-[0.98] opacity-80' :
+                state === 'running' ? 'silicone-pressed scale-[1.02] z-10' :
+                'silicone-flat'
               }`}>
-                {/* Icon */}
-                <div className="shrink-0">
+                {/* Icon Container */}
+                <div className={`shrink-0 size-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${
+                    state === 'done' ? 'bg-emerald-100 text-emerald-500' :
+                    state === 'running' ? 'silicone-convex text-[#00b5ad]' :
+                    'bg-slate-100 text-slate-300'
+                }`}>
                   {state === 'done' ? (
-                    <CheckCircle2 size={22} className="text-emerald-500" />
+                    <CheckCircle2 size={28} strokeWidth={2.5} />
                   ) : state === 'running' ? (
-                    <Loader2 size={22} className="text-blue-500 animate-spin" />
+                    <Loader2 size={28} strokeWidth={2.5} className="animate-spin" />
                   ) : (
-                    <Circle size={22} className="text-slate-300" />
+                    <Circle size={24} strokeWidth={2.5} />
                   )}
                 </div>
 
                 {/* Label */}
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold ${
-                    state === 'done' ? 'text-emerald-700' :
-                    state === 'running' ? 'text-blue-700' :
+                  <p className={`text-base font-black tracking-tight ${
+                    state === 'done' ? 'text-slate-500 line-through decoration-emerald-500/30' :
+                    state === 'running' ? 'text-[#1a2b4c]' :
                     'text-slate-400'
                   }`}>
                     {node.label}
                   </p>
-                  <p className="text-[11px] text-slate-400">{node.labelEn}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{node.labelEn}</p>
                 </div>
 
-                {/* Status badge */}
+                {/* Status indicator */}
                 <div className="shrink-0">
-                  {state === 'done' && <span className="text-[10px] font-bold text-emerald-500 uppercase">完成</span>}
-                  {state === 'running' && <span className="text-[10px] font-bold text-blue-500 uppercase animate-pulse">执行中</span>}
+                  {state === 'done' && (
+                    <div className="bg-emerald-500/10 text-emerald-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-sm">
+                        Verified
+                    </div>
+                  )}
+                  {state === 'running' && (
+                    <div className="bg-[#00b5ad] text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter animate-pulse shadow-md">
+                        Processing
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* Connector line */}
-              {i < PIPELINE_NODES.length - 1 && (
-                <div className="flex justify-start ml-[26px]">
-                  <div className={`w-0.5 h-4 ${
-                    state === 'done' ? 'bg-emerald-300' : 'bg-slate-200'
-                  }`} />
-                </div>
-              )}
             </div>
           );
         })}
       </div>
     </div>
+  </div>
   );
 };

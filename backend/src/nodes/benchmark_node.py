@@ -18,6 +18,7 @@ from bs4 import BeautifulSoup  # type: ignore[import-not-found]
 from src.state import AgentState
 from src.llm import make_qwen_llm
 import time # 导入时间模块
+from langchain_core.messages import HumanMessage, SystemMessage
 # 引入 Docling 相关组件
 try:
     from docling.datamodel.base_models import InputFormat
@@ -252,6 +253,29 @@ def _best_paper_rmse(paper_metrics: Dict[str, Any]) -> Optional[float]:
             rmses.append(float(rmse))
     return min(rmses) if rmses else None
 
+def _check_domain_consistency(llm: Any, query: str, csv_info: str) -> bool:
+    """Check if the CSV data matches the research query's domain using LLM."""
+    prompt = f"""Compare the Research Query with the CSV Data Sample. 
+Determine if they belong to the same scientific/technical domain.
+
+Research Query: {query}
+CSV Data Sample (Columns & Values): 
+{csv_info}
+
+Rules:
+- If Query is about "Legal/Law" but CSV is "Sensor/EKF/RMSE", they are INCONSISTENT.
+- If Query is about "Vision/CNN" and CSV has "Accuracy/mAP", they are CONSISTENT.
+- Return ONLY "CONSISTENT" or "INCONSISTENT".
+"""
+    try:
+        resp = llm.invoke([
+            SystemMessage(content="You are a domain classifier. Answer ONLY 'CONSISTENT' or 'INCONSISTENT'."),
+            HumanMessage(content=prompt)
+        ])
+        return "CONSISTENT" in resp.content.upper()
+    except:
+        return True # Fallback to true if LLM fails
+
 # --- 核心分析节点 ---
 def benchmark_node(state: AgentState) -> Dict[str, Any]:
     start_ts = time.time()
@@ -259,166 +283,201 @@ def benchmark_node(state: AgentState) -> Dict[str, Any]:
     domain_metrics = state.get("domain_metrics") or ["accuracy", "rmse"]
     iteration = int(state.get("iteration") or 0) + 1
     
+    # 获取双模式开关
+    run_benchmark = state.get("run_benchmark", False)
+    query = state.get("query", "")
+    
     # 初始化 LLM
     current_model = os.getenv("SELECTED_MODEL_NAME", "qwen2.5-32b-instruct")
     llm = make_qwen_llm(model_name=current_model, temperature=0.0)
+    
+    # 模式选择与领域检查
+    eval_mode = "review"
+    csv_path = os.getenv("EXPERIMENT_CSV_PATH", "data/experiment.csv")
+    local_data = {"ok": False}
+    
+    if run_benchmark and os.path.exists(csv_path):
+        # 尝试读取 CSV 样本用于领域检查
+        try:
+            sample_df = pd.read_csv(csv_path, nrows=5)
+            csv_info = f"Columns: {list(sample_df.columns)}\nSample Rows:\n{sample_df.to_string(index=False)}"
+            if _check_domain_consistency(llm, query, csv_info):
+                eval_mode = "benchmark"
+                local_data = compute_local_rmse_from_csv(csv_path)
+            else:
+                eval_mode = "mismatch"
+        except:
+            eval_mode = "review"
+    
+    # 如果是 Benchmark 模式，准备提取提示词
     sys_prompt, regex_patterns = _generate_dynamic_prompts(domain_metrics)
     
-    # Load previously accumulated results if this is a subsequent iteration
+    # Load previously accumulated results
     previous_metrics = state.get("paper_metrics", {}).get("papers", [])
     extracted_results = list(previous_metrics)
     total_tokens = 0
     
-    # Track titles already in extracted_results to avoid duplicates in accumulating
+    # Track titles already processed
     existing_titles = {res["title"].lower().strip() for res in extracted_results if "title" in res}
     
-    # 1. 提取论文指标
-    for p in top_papers[:10]: # 平衡精度与成本
+    # 1. 提取论文信息 (根据模式调整侧重点)
+    for p in top_papers[:10]:
         title = (p.get("title") or "").strip()
         if title.lower() in existing_titles:
             continue
         
         full_text_raw = p.get("full_text_cache") or _paper_full_text(p, [])
         if not full_text_raw: continue
+        
+        # 过滤相关上下文
         context_for_llm = _filter_relevant_context_dynamic(full_text_raw, regex_patterns)
 
         try:
-            from langchain_core.messages import HumanMessage, SystemMessage
-            resp = llm.invoke([SystemMessage(content=sys_prompt), HumanMessage(content=context_for_llm)])
-            total_tokens += resp.response_metadata.get("token_usage", {}).get("total_tokens", 0)
-            
-            content = re.sub(r"```json\s?|\s?```", "", resp.content).strip()
-            data = json.loads(content)
-            
-            # 仅记录包含有效数值的论文
-            valid_m = [m for m in data.get("metrics", []) if m.get("value") is not None]
-            if valid_m:
+            # 如果是 Benchmark 模式，提取数值
+            if eval_mode == "benchmark":
+                resp = llm.invoke([SystemMessage(content=sys_prompt), HumanMessage(content=context_for_llm)])
+                total_tokens += resp.response_metadata.get("token_usage", {}).get("total_tokens", 0)
+                content = re.sub(r"```json\s?|\s?```", "", resp.content).strip()
+                data = json.loads(content)
+                valid_m = [m for m in data.get("metrics", []) if m.get("value") is not None]
+                if valid_m:
+                    extracted_results.append({
+                        "title": p.get("title"),
+                        "venue": f"{p.get('venue_type', 'N/A')}-{p.get('venue_rank', 'N/A')}",
+                        "metrics": valid_m
+                    })
+            else:
+                # Review 模式：提取核心发现与趋势
+                review_prompt = f"""You are a senior scientist summarizing a paper's key methodology and findings.
+Research Query: {query}
+Extract:
+1. Core Methodology/Algorithm.
+2. Key Achievement or Finding.
+3. Relevant Metrics defined in paper.
+
+Return JSON:
+{{
+  "method": "string",
+  "key_finding": "string",
+  "metrics_defined": ["string"]
+}}
+"""
+                resp = llm.invoke([SystemMessage(content=review_prompt), HumanMessage(content=context_for_llm)])
+                total_tokens += resp.response_metadata.get("token_usage", {}).get("total_tokens", 0)
+                content = re.sub(r"```json\s?|\s?```", "", resp.content).strip()
+                data = json.loads(content)
+                
                 extracted_results.append({
                     "title": p.get("title"),
                     "venue": f"{p.get('venue_type', 'N/A')}-{p.get('venue_rank', 'N/A')}",
-                    "metrics": valid_m
+                    "review_data": data
                 })
         except:
             continue
 
-    # 2. 计算本地实验
-    csv_path = os.getenv("EXPERIMENT_CSV_PATH", "data/experiment.csv")
-    local_data = compute_local_rmse_from_csv(csv_path)
-
     # 3. 构造学术 Markdown 报告
     lines = []
-    lines.append(f"# 🎓 Scholar-Agent Research Report\n")
-    lines.append(f"**Research Query**: `{state.get('query')}`")
-    lines.append(f"**Target Metrics**: {', '.join([f'`{m}`' for m in domain_metrics])}\n")
+    lines.append(f"# 🎓 Scholar-Agent Research Report ({'Benchmark Mode' if eval_mode == 'benchmark' else 'Qualitative Review'})\n")
     
-    # Get all accumulated papers (not just current top_tier_papers) to display in literature section
+    if eval_mode == "mismatch":
+        lines.append("> [!WARNING]")
+        lines.append("> **领域不匹配警告**: 检测到上传的实验数据（CSV）与研究问题领域严重偏离。")
+        lines.append("> 系统已自动切换为 **纯文献定性分析 (Qualitative Review)** 模式。\n")
+
+    lines.append(f"**Research Query**: `{query}`")
+    if eval_mode == "benchmark":
+        lines.append(f"**Target Metrics**: {', '.join([f'`{m}`' for m in domain_metrics])}\n")
+    lines.append("")
+
+    # --- Literature References ---
+    lines.append("## 📚 Key Literature & References")
     all_accumulated_papers = state.get("candidate_papers", [])[:10] if not top_papers and iteration > 1 else top_papers
     
-    # --- 论文引用列表 ---
-    lines.append("## 📚 Key Literature & Venues")
-    if all_accumulated_papers or extracted_results:
-        display_papers = all_accumulated_papers if all_accumulated_papers else []
-        if not display_papers and extracted_results:
-            # Fallback to display extracted results if top_papers is entirely empty
-            display_papers = extracted_results
-            
-        for i, p in enumerate(display_papers[:10], 1):
+    if all_accumulated_papers:
+        for i, p in enumerate(all_accumulated_papers[:10], 1):
             info = f"{p.get('venue') or p.get('venue_type', 'N/A')}, {p.get('year', 'N/A')}"
             rank = f"`{p.get('venue_type', 'N/A')}-{p.get('venue_rank', 'N/A')}`"
-
-            # 2. 构造链接组
-            link_elements = []
-            # 网络链接 (Web URL)
-            web_url = p.get('url')
-            if web_url:
-                link_elements.append(f"[🔗 Web]({web_url})")
+            # Handle potential missing URL/Path
+            url = p.get('url') or p.get('link') or ""
+            path = p.get('local_pdf_path') or ""
+            links = []
+            if url: links.append(f"[🔗 Web]({url})")
+            if path: links.append(f"[📂 Local]({path})")
+            links_str = " | ".join(links) if links else "*No Links*"
             
-            # 本地 PDF 路径 (Local Path)
-            local_path = p.get('local_pdf_path')
-            if local_path:
-            # 注意：某些操作系统路径包含反斜杠，Markdown 链接中建议保留或处理
-                link_elements.append(f"[📂 Local]({local_path})")
-            # 拼接链接字符串
-            links_str = " | ".join(link_elements) if link_elements else "*No Links*"
-
-            # 3. 组合成最终行
             lines.append(f"{i}. **{p.get('title')}**")
             lines.append(f"   - {info} | {rank} | {links_str}")
     else:
-        lines.append("*No relevant papers found.*")
+        lines.append("*No relevant papers found yet.*")
     lines.append("")
 
-    # --- SOTA 指标对比表 ---
-    lines.append("## 📊 Quantitative Benchmark (SOTA)")
-    if extracted_results:
-        lines.append("| Paper Title | Venue Rank | Extracted Metrics |")
-        lines.append("|:---|:---|:---|")
-        for res in extracted_results:
-            m_str = " ".join([f"`{m['name']}: {m['value']} {m.get('unit','')}`" for m in res['metrics']])
-            lines.append(f"| {res['title']}... | {res['venue']} | {m_str} |")
+    # --- SOTA Comparison (Benchmark vs Review) ---
+    if eval_mode == "benchmark":
+        lines.append("## 📊 Quantitative Benchmark (SOTA)")
+        if extracted_results:
+            lines.append("| Paper Title | Extracted Metrics |")
+            lines.append("|:---|:---|")
+            for res in extracted_results:
+                if "metrics" in res:
+                    m_str = " ".join([f"`{m['name']}: {m['value']} {m.get('unit','')}`" for m in res['metrics']])
+                    lines.append(f"| {res['title'][:60].replace('|',' ')}... | {m_str} |")
+        else:
+            lines.append("> ⚠️ No numerical metrics were successfully extracted for comparison.")
+        
+        lines.append("\n## 🧪 Local Experiment Results")
+        if local_data.get("ok"):
+            lines.append(f"- **Primary Metric (RMSE)**: `{local_data.get('rmse', 0):.6f}`")
+            lines.append(f"- **Data Samples**: {local_data.get('n')}")
+            lines.append(f"- **Benchmark Status**: `Domain Consistent`")
+        else:
+            lines.append(f"*Local data unavailable: {local_data.get('reason')}*")
     else:
-        lines.append("> ⚠️ No numerical metrics were extracted from the current set of papers.")
+        # Qualitative Review Mode
+        lines.append("## 📖 Qualitative Literature Review")
+        if extracted_results:
+            for res in extracted_results:
+                if "review_data" in res:
+                    rd = res["review_data"]
+                    lines.append(f"### {res['title']}")
+                    lines.append(f"- **Methodology**: {rd.get('method')}")
+                    lines.append(f"- **Key Findings**: {rd.get('key_finding')}")
+                    if rd.get('metrics_defined'):
+                        lines.append(f"- **Defined Metrics**: {', '.join([f'`{m}`' for m in rd.get('metrics_defined', [])])}")
+                    lines.append("")
+        else:
+            lines.append("*No detailed qualitative analysis available for the current papers.*")
+
     lines.append("")
 
-    # --- 本地实验结果 ---
-    lines.append("## 🧪 Local Experiment Results")
-    if local_data.get("ok"):
-        lines.append(f"- **Primary Metric (RMSE)**: `{local_data['rmse']:.6f}`")
-        lines.append(f"- **Data Samples**: {local_data['n']}")
-        lines.append(f"- **CSV Source**: `{csv_path}`")
-    else:
-        lines.append(f"*Local data unavailable: {local_data.get('reason')}*")
-    lines.append("")
-
-    # --- 专家级 LLM-Analysis ---
+    # --- AI Analysis Synthesis ---
     lines.append("## 🧠 Technical Analysis & Synthesis")
-    
     try:
-        # 准备上下文数据
         local_val = local_data.get('rmse') if local_data.get('ok') else 'N/A'
-        target_metrics = ", ".join(domain_metrics)
-        # 构造 Prompt
-        analysis_prompt = f"""You are a senior multi-disciplinary scientist. 
-Your task is to synthesize research results between a User's local experiment and SOTA literature.
+        analysis_prompt = f"""You are a senior scientist. Synthesize research results.
+Mode: {eval_mode}
+Research Query: {query}
+Local Data: {local_val}
+Findings JSON: (Provided below)
 
-### Data Inputs:
-- Local Experimental Metric: [RMSE: {local_val}]
-- Target Research Metrics: [{target_metrics}]
-- Extracted SOTA Results: (Provided in the JSON below)
-
-If "Extracted SOTA Results" is empty, just focus on providing advice based on the domain generally, or state that more literature needs to be analyzed.
-
-### Analysis Protocol:
-1. **Domain Compatibility Check**: 
-   - First, determine if the SOTA papers and the Local Experiment belong to the same domain.
-   - If the Local Data is numerical (e.g., RMSE) but the SOTA papers are qualitative or from unrelated fields (e.g., Social Sciences, Arts), DECLARE a "Domain Mismatch".
-   
-2. **Conditional Comparison**:
-   - IF DOMAINS MATCH: Compare the local RMSE with the SOTA values. Identify the leading paper and explain the performance gap.
-   - IF DOMAINS MISMATCH: Ignore the local RMSE. Focus entirely on synthesizing the SOTA findings and explaining why the local metric is not applicable to this specific literature.
-
-3. **Technical Synthesis**:
-   - Identify the best performing paper/method from the SOTA list.
-   - Provide 3 high-level technical or methodological suggestions based on the SOTA findings.
-
-### Constraints:
-- Do not output raw JSON tags like "sota: extracted_results".
-- Be professional, concise, and academically rigorous.
+Tasks:
+1. Summarize the state-of-the-art based on the extracted findings.
+2. If Mode is 'benchmark', compare Local vs SOTA.
+3. If Mode is 'review' or 'mismatch', synthesize the qualitative trends and methodology.
+4. Provide 3 actionable technical suggestions.
 """
         ana_resp = llm.invoke([
             SystemMessage(content=analysis_prompt), 
-            HumanMessage(content=json.dumps({"sota": extracted_results, "local": local_data}))
+            HumanMessage(content=json.dumps({"sota": extracted_results, "local": local_data, "mode": eval_mode}, ensure_ascii=False))
         ])
         total_tokens += ana_resp.response_metadata.get("token_usage", {}).get("total_tokens", 0)
         lines.append(ana_resp.content.strip())
     except:
-        lines.append("*LLM-analysis generation failed.*")
+        lines.append("*LLM-analysis synthesis failed.*")
 
-    # 4. 状态更新与返回
+    # 4. Final state update
     report = "\n".join(lines)
     duration = round(time.time() - start_ts, 2)
     
-    # 更新耗时统计
     metrics_log = state.get("metrics_log", {"total_tokens": {}, "node_durations": {}})
     metrics_log["node_durations"]["benchmark_node"] = duration
     metrics_log["total_tokens"]["benchmark_node"] = total_tokens
@@ -426,7 +485,8 @@ If "Extracted SOTA Results" is empty, just focus on providing advice based on th
     return {
         "analysis_report": report,
         "iteration": iteration,
-        "done": iteration >= int(state.get("max_iterations", 1)) or len(extracted_results) > 0,
+        "eval_mode": eval_mode,
+        "done": iteration >= int(state.get("max_iterations", 1)) or (len(extracted_results) >= 3 if eval_mode == "benchmark" else len(extracted_results) >= 1),
         "metrics_log": metrics_log,
         "paper_metrics": {"papers": extracted_results}
     }

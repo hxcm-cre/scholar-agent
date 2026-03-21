@@ -25,6 +25,7 @@ class ResearchRequest(BaseModel):
     weights: ResearchWeights = ResearchWeights()
     use_ocr: bool = False
     user_metrics: str = ""
+    run_benchmark: bool = False  # 是否关联实验数据进行 SOTA 对比
     csv_data: Optional[str] = None  # base64-encoded CSV
 
 

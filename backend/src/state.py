@@ -66,3 +66,7 @@ class AgentState(TypedDict, total=False):
     metrics_log: Dict[str, Any] # 用于存放：{"tokens": {}, "node_durations": {}}
 
     domain_metrics: List[str] # 例如 ["RMSE", "MAE", "Accuracy", "F1-score"]
+
+    # --- Dual-Mode Control ---
+    run_benchmark: bool      # 是否通过实验数据对标 SOTA
+    eval_mode: str           # "benchmark" (对标) / "review" (综述) / "mismatch" (领域不匹配)

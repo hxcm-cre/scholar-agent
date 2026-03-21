@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Download, BarChart3, ShieldCheck, ArrowLeft, Loader2, BookOpen, X, ExternalLink, Highlighter, Send, MessageSquare, Plus, Sparkles, ChevronUp, ChevronDown, Brain } from 'lucide-react';
 import type { ProjectDetail, LiteratureItem, ModelOption } from '../types';
 import { getProject, chatPaper, savePaperNote, getAvailableModels } from '../services/api';
@@ -87,8 +88,8 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
   };
 
   return (
-    <section className="flex-1 overflow-y-auto bg-[#f5f7fa] custom-scrollbar">
-      <div className="max-w-5xl mx-auto p-8">
+    <section className="flex-1 overflow-y-auto bg-[#f1f3f8] custom-scrollbar silicone-grain">
+      <div className="max-w-5xl mx-auto p-12">
         {/* Back */}
         <button onClick={onBack} className="flex items-center gap-1 text-sm text-slate-500 hover:text-[#1a2b4c] mb-6 transition-colors">
           <ArrowLeft size={16} /> 返回任务列表
@@ -123,49 +124,55 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
 
         {/* Literature list */}
         {project.literature.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-            <h4 className="text-sm font-bold text-[#1a2b4c] uppercase tracking-widest flex items-center gap-2 mb-4">
-              <BookOpen size={16} className="text-[#22d3ee]" />
-              检索到的论文 ({project.literature.length})
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 mb-12 shadow-sm">
+            <h4 className="text-xs font-black text-[#1a2b4c] uppercase tracking-[0.2em] flex items-center gap-2 mb-8">
+              <BookOpen size={18} className="text-[#00b5ad]" />
+              检索到的核心文献 ({project.literature.length})
             </h4>
-            <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+            <div className="space-y-6">
               {project.literature.map((lit: LiteratureItem) => (
-                <div key={lit.id} className="p-3 rounded-lg bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors">
+                <div key={lit.id} className="p-5 rounded-2xl bg-white border border-slate-100 hover:border-[#00b5ad]/30 hover:shadow-lg transition-all duration-300 group">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0 mr-4">
-                      <p className="text-sm font-semibold text-[#1a2b4c] line-clamp-1">
-                        {lit.url ? <a href={lit.url} target="_blank" rel="noopener noreferrer" className="hover:text-[#22d3ee] transition-colors">{lit.title}</a> : lit.title}
+                    <div className="flex-1 min-w-0 mr-6">
+                      <p className="text-base font-bold text-[#1a2b4c] line-clamp-1 mb-1">
+                        {lit.url ? <a href={lit.url} target="_blank" rel="noopener noreferrer" className="hover:text-[#00b5ad] transition-colors">{lit.title}</a> : lit.title}
                       </p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        {lit.authors && <span>{lit.authors} · </span>}
-                        {lit.year && <span>{lit.year} · </span>}
-                        {lit.venue && <span>{lit.venue}</span>}
-                      </p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {lit.venue && <span className="px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded text-[10px] font-bold uppercase tracking-wider">{lit.venue}</span>}
+                        {lit.year && <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-bold">{lit.year}</span>}
+                        {lit.authors && <span className="text-[11px] text-slate-400 font-medium self-center">{lit.authors.split(',')[0]} et al.</span>}
+                      </div>
                       {lit.user_notes && (
-                        <div className="mt-2 p-2 bg-blue-50/50 rounded border border-blue-100/50 text-[11px] text-slate-600">
-                          <div className="flex items-center gap-1.5 mb-1 text-blue-600 font-bold uppercase tracking-wider text-[9px]">
-                            <Sparkles size={10} /> 专家备注
-                          </div>
-                          <ReactMarkdown>{lit.user_notes}</ReactMarkdown>
-                        </div>
+                        <details className="mt-4 group/insight overflow-hidden border border-slate-100/50 rounded-2xl bg-[#f1f3f8]/50 transition-all duration-300">
+                           <summary className="list-none cursor-pointer p-4 flex items-center justify-between hover:bg-[#f1f3f8] transition-colors">
+                              <div className="flex items-center gap-1.5 text-[#00b5ad] font-bold uppercase tracking-widest text-[9px]">
+                                <Sparkles size={12} className="group-open/insight:animate-pulse" /> 专家深度洞察
+                              </div>
+                              <div className="text-slate-400 group-open/insight:rotate-180 transition-transform duration-300">
+                                <ChevronDown size={14} />
+                              </div>
+                           </summary>
+                           <div className="px-4 pb-4 text-[12px] text-slate-600 border-t border-slate-200/50 pt-3 animate-in fade-in slide-in-from-top-1">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{lit.user_notes}</ReactMarkdown>
+                           </div>
+                        </details>
                       )}
                     </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <div className="flex gap-3 text-[10px] text-slate-400">
-                        {lit.citations > 0 && <span>🔗 {lit.citations}</span>}
-                        {lit.score > 0 && <span>⭐ {lit.score.toFixed(2)}</span>}
+                    <div className="flex flex-col items-end gap-3 shrink-0">
+                      <div className="flex gap-4 text-[11px] font-bold text-slate-400">
+                        {lit.citations > 0 && <span className="flex items-center gap-1"><ExternalLink size={10} /> {lit.citations}</span>}
+                        {lit.score > 0 && <span className="flex items-center gap-1 text-[#00b5ad] bg-[#00b5ad]/10 px-2 py-0.5 rounded-full">⭐ {lit.score.toFixed(1)}</span>}
                       </div>
                       <button
                         onClick={() => setSelectedPaper(lit)}
-                        className="flex items-center gap-1 text-[10px] bg-[#22d3ee]/10 text-[#22d3ee] px-2 py-1 rounded hover:bg-[#22d3ee]/20 transition-colors"
+                        className="flex items-center gap-2 text-[11px] font-bold bg-[#1a2b4c] text-white px-4 py-2 rounded-xl hover:bg-[#00b5ad] hover:shadow-md transition-all duration-300"
                       >
-                        <Highlighter size={10} /> 查看原文
+                        <Highlighter size={12} /> 文献透视
                       </button>
                     </div>
                   </div>
                 </div>
               ))}
-
             </div>
           </div>
         )}
@@ -175,21 +182,127 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-10 min-h-[400px] text-slate-800 leading-relaxed">
             <div className="prose prose-slate max-w-none">
               <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
                 components={{
-                  h2: ({ node, ...props }) => <h2 className="text-xl font-bold text-[#1a2b4c] mt-8 mb-4" {...props} />,
+                  h2: ({ node, ...props }) => <h2 className="text-xl font-bold text-[#1a2b4c] mt-8 mb-4 border-b border-slate-100 pb-2" {...props} />,
                   h3: ({ node, ...props }) => <h3 className="text-lg font-semibold text-[#1a2b4c] mt-6 mb-2" {...props} />,
                   ul: ({ node, ...props }) => <ul className="list-disc pl-5 space-y-2 text-slate-700" {...props} />,
                   li: ({ node, ...props }) => <li {...props} />,
                   strong: ({ node, ...props }) => <strong className="font-bold text-[#1a2b4c]" {...props} />,
+                  table: ({ node, ...props }) => (
+                    <div className="my-8 overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                      <table className="w-full text-sm text-left border-collapse" {...props} />
+                    </div>
+                  ),
+                  thead: ({ node, ...props }) => <thead className="bg-slate-50 border-b border-slate-200" {...props} />,
+                  th: ({ node, ...props }) => <th className="px-4 py-3 font-bold text-[#1a2b4c] uppercase tracking-wider text-[10px]" {...props} />,
+                  td: ({ node, ...props }) => <td className="px-4 py-3 border-b border-slate-100 text-slate-600" {...props} />,
                   blockquote: ({ node, ...props }) => {
-                    const { cite, ...rest } = props as any;
+                    const children = props.children as any;
+                    const content = String(children?.[1]?.props?.children || children?.[0]?.props?.children || '');
+                    
+                    // Case 1: GitHub Style Alerts [!WARNING], [!NOTE], [!TIP]
+                    if (content.includes('[!WARNING]') || content.includes('领域不匹配警告')) {
+                      return (
+                        <div className="my-6 p-5 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                          <div className="p-2 bg-red-100 rounded-lg text-red-600">
+                            <ShieldCheck size={20} />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-red-700 uppercase tracking-widest mb-1">Domain Mismatch Warning</h4>
+                            <div className="text-sm text-red-600/90 font-medium leading-relaxed">
+                              {content.replace('[!WARNING]', '').trim()}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (content.includes('[!NOTE]') || content.includes('[!TIP]')) {
+                      const isTip = content.includes('[!TIP]');
+                      return (
+                        <div className={`my-6 p-5 ${isTip ? 'bg-cyan-50 border-cyan-100' : 'bg-slate-50 border-slate-100'} border rounded-2xl flex items-start gap-4`}>
+                          <div className={`p-2 ${isTip ? 'bg-cyan-100 text-cyan-600' : 'bg-slate-200 text-slate-500'} rounded-lg`}>
+                            <Sparkles size={20} />
+                          </div>
+                          <div>
+                            <h4 className={`text-xs font-black ${isTip ? 'text-cyan-700' : 'text-slate-700'} uppercase tracking-widest mb-1`}>
+                              {isTip ? 'Expert Tip' : 'Information Note'}
+                            </h4>
+                            <div className={`text-sm ${isTip ? 'text-cyan-600/90' : 'text-slate-600/90'} font-medium`}>
+                              {content.replace(/\[!(NOTE|TIP)\]/, '').trim()}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Case 2: Performance Comparison Cards
+                    const isComparison = content.toLowerCase().includes('sota') && (content.toLowerCase().includes('local') || content.toLowerCase().includes('rmse'));
+                    
+                    if (isComparison) {
+                      const parts = content.split(/[,;\n]/).map(p => p.trim());
+                      const metricsMap: Record<string, string> = {};
+                      parts.forEach(p => {
+                        const [k, v] = p.split(/[:：]/).map(s => s?.trim());
+                        if (k && v) {
+                           const key = k.toLowerCase();
+                           if (key.includes('local')) metricsMap['local'] = v;
+                           else if (key.includes('sota')) metricsMap['sota'] = v;
+                           else if (key.includes('diff')) metricsMap['diff'] = v;
+                           else metricsMap[key] = v;
+                        }
+                      });
+
+                      if (metricsMap['local'] || metricsMap['sota']) {
+                        return (
+                          <div className="my-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="silicone-convex p-6 rounded-3xl border border-white/50 relative overflow-hidden">
+                              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-400/10 rounded-full -mr-12 -mt-12 blur-2xl" />
+                              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Local Experiment</h4>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-4xl font-black text-[#1a2b4c]">{metricsMap['local'] || '0.00'}</span>
+                                <span className="text-xs font-bold text-slate-400">Value</span>
+                              </div>
+                              <div className="mt-4 flex gap-2">
+                                <span className="px-3 py-1 bg-[#1a2b4c]/5 text-[#1a2b4c] rounded-full text-[10px] font-bold">Primary Metric</span>
+                              </div>
+                            </div>
+                            
+                            <div className="silicone-flat p-6 rounded-3xl border border-slate-200/50 relative overflow-hidden">
+                              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-400/10 rounded-full -mr-12 -mt-12 blur-2xl" />
+                              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">SOTA Baseline</h4>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-4xl font-black text-slate-400">{metricsMap['sota'] || '0.00'}</span>
+                                <span className="text-xs font-bold text-slate-400">SOTA</span>
+                              </div>
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                {metricsMap['diff'] && (() => {
+                                  const diffVal = parseFloat(metricsMap['diff'].replace('%', ''));
+                                  const isPositive = diffVal > 0;
+                                  return (
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 ${
+                                      isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+                                    }`}>
+                                      {isPositive ? '+' : ''}{diffVal}% {isPositive ? 'Gain' : 'Loss'} 
+                                      {isPositive ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                    </span>
+                                  );
+                                })()}
+                                <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-[10px] font-bold">Reference</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                    }
+
+                    // Default Fallback: Elegant Blockquote
                     return (
-                      <div className="my-6 p-5 bg-[#22d3ee]/10 border-l-4 border-[#22d3ee] rounded-r-xl">
-                        <h4 className="font-bold text-[#1a2b4c] flex items-center gap-2 mb-2">
-                          <ShieldCheck size={16} />
-                          Performance Comparison
-                        </h4>
-                        <div className="text-[#1a2b4c]/80 font-medium italic" {...rest} />
+                      <div className="my-8 p-6 bg-slate-50/50 rounded-3xl border-l-4 border-[#00b5ad] relative overflow-hidden accent-light">
+                        <div className="text-slate-600 font-medium leading-relaxed italic">
+                          {children}
+                        </div>
                       </div>
                     );
                   },
@@ -207,30 +320,56 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
 
             {/* Metrics chart */}
             {metricsData.length > 0 && (
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold text-[#1a2b4c] mb-4">节点耗时分布 (秒)</h3>
-                <div className="w-full h-64 bg-slate-50 rounded-xl border border-slate-100 p-4">
+              <div className="mt-12 p-8 silicone-flat rounded-[2.5rem] border border-white/50">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-lg font-black text-[#1a2b4c] tracking-tight">节点耗时分布与瓶颈分析</h3>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-gradient-to-t from-[#1a2b4c] to-[#00b5ad]" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">正常执行</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-gradient-to-t from-[#ef4444] to-[#f87171]" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">高耗时节点</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="w-full h-80 bg-white/30 backdrop-blur-sm rounded-3xl border border-white/40 p-6 shadow-inner">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={metricsData} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} dy={10} />
-                      <YAxis hide />
+                    <BarChart data={metricsData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                      <defs>
+                        <linearGradient id="barNormal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#00b5ad" stopOpacity={0.9}/>
+                          <stop offset="100%" stopColor="#1a2b4c" stopOpacity={1}/>
+                        </linearGradient>
+                        <linearGradient id="barWarning" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#f87171" stopOpacity={0.9}/>
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity={1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="rgba(203, 213, 225, 0.4)" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} dy={15} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
                       <Tooltip
-                        cursor={{ fill: 'transparent' }}
+                        cursor={{ fill: 'rgba(255,255,255,0.4)', radius: 12 }}
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
                             return (
-                              <div className="bg-white border border-slate-200 p-2 rounded shadow-sm text-xs font-mono">
-                                {Number(payload[0].value).toFixed(2)}s
+                              <div className="bg-white/90 backdrop-blur-md border border-slate-200 p-3 rounded-2xl shadow-xl text-xs font-black text-[#1a2b4c]">
+                                <div className="mb-1 text-[10px] text-slate-400 uppercase tracking-widest">{payload[0].payload.name}</div>
+                                <div className="text-lg">{Number(payload[0].value).toFixed(2)}s</div>
                               </div>
                             );
                           }
                           return null;
                         }}
                       />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={48}>
-                        {metricsData.map((_, i) => (
-                          <Cell key={`cell-${i}`} fill={i % 2 === 0 ? '#1a2b4c' : '#22d3ee'} />
+                      <Bar dataKey="value" radius={[12, 12, 4, 4]} barSize={40}>
+                        {metricsData.map((entry, i) => (
+                          <Cell 
+                            key={`cell-${i}`} 
+                            fill={entry.value > 10 || entry.name === 'filter' ? 'url(#barWarning)' : 'url(#barNormal)'} 
+                          />
                         ))}
                       </Bar>
                     </BarChart>
@@ -249,125 +388,162 @@ export const ResearchReport: React.FC<ResearchReportProps> = ({ projectId, onBac
 
       </div>
 
-      {/* Side Drawer */}
+      {/* Side Drawer with Resizable Panel */}
       {selectedPaper && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedPaper(null)} />
-          <div className="relative w-full max-w-6xl bg-white shadow-2xl flex flex-col animate-drawer-in">
-            {/* Drawer Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-              <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-bold text-[#1a2b4c] truncate">{selectedPaper.title}</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {selectedPaper.authors} · {selectedPaper.year} · {selectedPaper.venue}
-                </p>
-              </div>
-              <div className="flex items-center gap-3 ml-4">
-                {selectedPaper.url && (
-                  <a
-                    href={selectedPaper.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-[#22d3ee] transition-colors"
-                  >
-                    <ExternalLink size={14} /> 源文件
-                  </a>
-                )}
-                <button
-                  onClick={() => setSelectedPaper(null)}
-                  className="p-2 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-
-            {/* Split View Content */}
-            <div className="flex-1 flex overflow-hidden">
-              {/* Left Column: AI Summary/Metrics */}
-              <div className="w-[400px] border-r border-slate-100 bg-slate-50/30 overflow-y-auto p-6 custom-scrollbar">
-                <h3 className="text-sm font-bold text-[#1a2b4c] uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-[#22d3ee]" />
-                  AI 提取指标 & 摘要
-                </h3>
-
-                <div className="space-y-6">
-                  <section>
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">摘要 (Abstract)</h4>
-                    <div className="text-sm text-slate-600 leading-relaxed bg-white p-4 rounded-xl border border-slate-100">
-                      {selectedPaper.abstract || '暂无摘要'}
-                    </div>
-                  </section>
-
-                  {/* Show matching metrics from the report if any */}
-                  {(() => {
-                    const metrics = JSON.parse(report?.metrics_json || '{}');
-                    // Find if there are specific paper metrics for this title
-                    // Note: This requires the backend to store metrics per paper title or ID
-                    // For now, we can show general project metrics or search key info
-                    return (
-                      <section>
-                        <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">研究指标</h4>
-                        <div className="bg-white p-4 rounded-xl border border-slate-100 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-slate-500">论文评分</span>
-                            <span className="text-xs font-bold text-[#1a2b4c] bg-slate-100 px-2 py-0.5 rounded">
-                              {selectedPaper.score.toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-slate-500">引用量</span>
-                            <span className="text-xs font-bold text-[#1a2b4c]">{selectedPaper.citations}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-slate-500">发布平台/分级</span>
-                            <span className="text-xs font-bold text-[#22d3ee]">{selectedPaper.venue}</span>
-                          </div>
-                        </div>
-                      </section>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* Right Column: Full Markdown with Highlighting */}
-              <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-white">
-                <div className="prose prose-slate max-w-none">
-                  <ReactMarkdown
-                    components={{
-                      code: ({ node, className, children, ...props }) => {
-                        const content = String(children);
-                        // Simple highlighting within code blocks if needed, 
-                        // but usually it's better to keep code clean.
-                        return <code className={className} {...props}>{children}</code>;
-                      },
-                      // We can use a custom renderer for text to implement highlighting
-                      p: ({ children }) => {
-                        return <p>{highlightText(children, project?.query || '', project?.user_metrics || '')}</p>;
-                      },
-                      li: ({ children }) => {
-                        return <li>{highlightText(children, project?.query || '', project?.user_metrics || '')}</li>;
-                      },
-                      h1: ({ children }) => <h1 className="text-2xl font-bold text-[#1a2b4c] mt-8 mb-4">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h1>,
-                      h2: ({ children }) => <h2 className="text-xl font-bold text-[#1a2b4c] mt-6 mb-3">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h2>,
-                      h3: ({ children }) => <h3 className="text-lg font-bold text-[#1a2b4c] mt-4 mb-2">{highlightText(children, project?.query || '', project?.user_metrics || '')}</h3>,
-                    }}
-                  >
-                    {selectedPaper.full_text || '> ⚠️ 未提取到全文内容，仅展示摘要。\n\n' + selectedPaper.abstract}
-                  </ReactMarkdown>
-                </div>
-              </div>
-            </div>
-
-            {/* Floating Paper Chat */}
-            <PaperChat
-              paper={selectedPaper}
-              onSync={handleSyncToReport}
-            />
-          </div>
-        </div>
+        <DrawerWithResizable 
+          paper={selectedPaper} 
+          projectQuery={project.query} 
+          userMetrics={project.user_metrics}
+          report={report}
+          onClose={() => setSelectedPaper(null)}
+          onSync={handleSyncToReport}
+        />
       )}
     </section>
+  );
+};
+
+/**
+ * Resizable Side Drawer for Paper Details
+ */
+const DrawerWithResizable: React.FC<{
+  paper: LiteratureItem;
+  projectQuery: string;
+  userMetrics: string;
+  report: any;
+  onClose: () => void;
+  onSync: (note: string) => void;
+}> = ({ paper, projectQuery, userMetrics, report, onClose, onSync }) => {
+  const [leftWidth, setLeftWidth] = useState(450);
+  const isResizing = useRef(false);
+
+  const startResizing = (e: React.MouseEvent) => {
+    isResizing.current = true;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', stopResizing);
+    document.body.style.cursor = 'col-resize';
+  };
+
+  const stopResizing = () => {
+    isResizing.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', stopResizing);
+    document.body.style.cursor = 'default';
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing.current) return;
+    const newWidth = e.clientX - (window.innerWidth - 1152); // max-w-6xl is 1152px
+    if (newWidth > 300 && newWidth < 800) {
+      setLeftWidth(newWidth);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-[#1a2b4c]/40 backdrop-blur-md" onClick={onClose} />
+      <div className="relative w-full max-w-6xl bg-[#f1f3f8] shadow-[0_0_50px_rgba(0,0,0,0.2)] flex flex-col animate-drawer-in silicone-grain">
+        {/* Drawer Header */}
+        <div className="flex items-center justify-between px-8 py-6 border-b border-white/20 bg-white/40 backdrop-blur-xl">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-black text-[#1a2b4c] truncate tracking-tight">{paper.title}</h2>
+            <div className="flex gap-3 mt-1">
+              <span className="text-[10px] font-black uppercase text-[#00b5ad] bg-[#00b5ad]/10 px-2 py-0.5 rounded tracking-widest">{paper.venue}</span>
+              <span className="text-[10px] font-bold text-slate-400">{paper.authors} · {paper.year}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 ml-4">
+            {paper.url && (
+              <a
+                href={paper.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-[#00b5ad] transition-colors bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm"
+              >
+                <ExternalLink size={14} /> 源文件
+              </a>
+            )}
+            <button
+              onClick={onClose}
+              className="p-3 hover:bg-white rounded-2xl text-slate-400 hover:text-[#1a2b4c] transition-all shadow-sm border border-transparent hover:border-slate-100"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </div>
+
+        {/* Split View Content */}
+        <div className="flex-1 flex overflow-hidden relative">
+          {/* Left Column: AI Summary/Metrics */}
+          <div 
+            className="border-r border-white/30 bg-white/20 overflow-y-auto p-8 custom-scrollbar relative"
+            style={{ width: `${leftWidth}px` }}
+          >
+            <h3 className="text-xs font-black text-[#1a2b4c] uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
+              <Sparkles size={18} className="text-[#00b5ad]" />
+              AI 智能解析看板
+            </h3>
+
+            <div className="space-y-8">
+              <section className="silicone-flat p-6 rounded-[2rem] border border-white soft-shadow">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">摘要精华 (Abstract)</h4>
+                <div className="text-sm text-slate-600 leading-relaxed font-medium">
+                  {paper.abstract || '暂无摘要'}
+                </div>
+              </section>
+
+              <section className="silicone-convex p-6 rounded-[2rem] border border-white/50 accent-light">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">关键研究指标</h4>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-white/40 rounded-2xl border border-white/40">
+                    <span className="text-xs font-bold text-slate-500">文献质量分</span>
+                    <span className="text-sm font-black text-[#1a2b4c] bg-[#00b5ad]/10 text-[#00b5ad] px-3 py-1 rounded-xl">
+                      {paper.score.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-white/40 rounded-2xl border border-white/40">
+                    <span className="text-xs font-bold text-slate-500">前沿引用量</span>
+                    <span className="text-sm font-black text-[#1a2b4c]">{paper.citations}</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          {/* Resize Handle */}
+          <div 
+            className="w-1 hover:w-2 bg-[#00b5ad]/20 hover:bg-[#00b5ad] cursor-col-resize transition-all duration-300 z-10 relative group"
+            onMouseDown={startResizing}
+          >
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-12 bg-white rounded-full border border-slate-200 hidden group-hover:flex items-center justify-center shadow-lg">
+                <div className="w-1 h-4 bg-slate-200 rounded-full" />
+             </div>
+          </div>
+
+          {/* Right Column: Full Markdown */}
+          <div className="flex-1 overflow-y-auto p-12 custom-scrollbar bg-white/60 backdrop-blur-sm">
+            <div className="prose prose-slate max-w-none">
+              <ReactMarkdown
+                components={{
+                  p: ({ children }) => <p className="mb-4 text-slate-700 leading-8">{highlightText(children, projectQuery, userMetrics)}</p>,
+                  h1: ({ children }) => <h1 className="text-3xl font-black text-[#1a2b4c] mt-12 mb-6 tracking-tight">{highlightText(children, projectQuery, userMetrics)}</h1>,
+                  h2: ({ children }) => <h2 className="text-2xl font-black text-[#1a2b4c] mt-10 mb-5 tracking-tight">{highlightText(children, projectQuery, userMetrics)}</h2>,
+                  h3: ({ children }) => <h3 className="text-xl font-black text-[#1a2b4c] mt-8 mb-4 tracking-tight">{highlightText(children, projectQuery, userMetrics)}</h3>,
+                }}
+              >
+                {paper.full_text || '> ⚠️ 未提取到全文内容，仅展示摘要。\n\n' + paper.abstract}
+              </ReactMarkdown>
+            </div>
+          </div>
+        </div>
+
+        {/* Floating Paper Chat */}
+        <PaperChat
+          paper={paper}
+          onSync={onSync}
+        />
+      </div>
+    </div>
   );
 };
 

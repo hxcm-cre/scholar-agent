@@ -15,6 +15,7 @@ export interface ResearchRequest {
   weights: ResearchWeights;
   use_ocr: boolean;
   user_metrics: string;
+  run_benchmark: boolean;
   csv_data?: string | null;
 }
 

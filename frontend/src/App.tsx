@@ -29,6 +29,7 @@ export default function App() {
     weights: ResearchWeights,
     useOcr: boolean,
     userMetrics: string,
+    runBenchmark: boolean,
     csvData: string | null,
   ) => {
     setSubmitting(true);
@@ -39,6 +40,7 @@ export default function App() {
         weights,
         use_ocr: useOcr,
         user_metrics: userMetrics,
+        run_benchmark: runBenchmark,
         csv_data: csvData,
       });
       setView({ kind: 'workflow', projectId: project.id });

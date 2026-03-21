@@ -31,72 +31,81 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [currentView]);
 
   return (
-    <aside className="w-72 bg-[#1a2b4c] text-white flex flex-col shrink-0 h-screen">
+    <aside className="w-72 glass-effect text-[#1a2b4c] flex flex-col shrink-0 h-screen border-r border-white/20 silicone-grain">
       {/* Logo */}
-      <div className="p-6 border-b border-white/10">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={onNavigateHome}>
-          <div className="size-10 bg-[#22d3ee] rounded-lg flex items-center justify-center text-[#1a2b4c]">
-            <GraduationCap size={24} strokeWidth={2.5} />
+      <div className="p-6">
+        <div className="flex items-center gap-3 cursor-pointer group" onClick={onNavigateHome}>
+          <div className="size-12 silicone-convex rounded-2xl flex items-center justify-center text-[#1a2b4c] transition-transform group-hover:scale-105 duration-300">
+            <GraduationCap size={28} strokeWidth={2.5} className="text-[#00b5ad]" />
           </div>
-          <div>
-            <h1 className="text-lg font-bold leading-tight">Scholar-Agent</h1>
-            <p className="text-xs text-slate-300">Academic Intelligence</p>
+          <div className="overflow-hidden">
+            <h1 className="text-xl font-black leading-tight tracking-tight text-[#1a2b4c]">Scholar-Agent</h1>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] gradient-text-slogan">AI Research Assistant</p>
           </div>
         </div>
       </div>
 
       {/* Nav */}
-      <div className="p-4 space-y-1">
+      <div className="p-4 space-y-2">
         <button
           onClick={onNavigateHome}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
             currentView === 'home'
-              ? 'bg-white/10 text-white'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
+              ? 'silicone-pressed text-[#00b5ad] shadow-inner'
+              : 'text-slate-500 hover:text-[#1a2b4c] hover:bg-white/40'
           }`}
         >
-          <Home size={18} />
+          <Home size={18} strokeWidth={2.5} />
           任务看板
         </button>
       </div>
 
       {/* Recent projects */}
       <div className="flex-1 overflow-y-auto px-4 pb-4 custom-scrollbar">
-        <div className="flex items-center gap-2 px-3 py-2 mb-1">
-          <History size={14} className="text-slate-500" />
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">近期任务</span>
+        <div className="flex items-center gap-2 px-4 py-2 mb-2">
+          <History size={14} className="text-slate-400" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">历史回顾</span>
         </div>
-        <div className="space-y-0.5">
+        <div className="space-y-1.5">
           {recentProjects.map(p => (
             <button
               key={p.id}
               onClick={() => onSelectProject(p.id)}
-              className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-white/5 transition-colors line-clamp-1"
+              className="w-full text-left px-4 py-2.5 rounded-xl text-xs font-medium text-slate-500 hover:text-[#1a2b4c] hover:bg-white/40 transition-all duration-200 line-clamp-1 border border-transparent hover:border-white/20 hover:shadow-sm"
               title={p.query}
             >
-              <span className={`inline-block w-1.5 h-1.5 rounded-full mr-2 ${
+              <span className={`inline-block w-2 h-2 rounded-full mr-2 shadow-sm ${
                 p.status === 'done' ? 'bg-emerald-400' :
-                p.status === 'running' ? 'bg-blue-400' :
-                p.status === 'error' ? 'bg-red-400' : 'bg-slate-500'
+                p.status === 'running' ? 'bg-blue-400 animate-pulse' :
+                p.status === 'error' ? 'bg-red-400' : 'bg-slate-300'
               }`} />
-              {p.query.length > 28 ? p.query.slice(0, 28) + '…' : p.query}
+              {p.query}
             </button>
           ))}
           {recentProjects.length === 0 && (
-            <p className="text-[10px] text-slate-500 px-3 py-2">暂无任务</p>
+            <p className="text-[10px] text-slate-400 px-4 py-2 italic font-medium">尚无研究足迹...</p>
           )}
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-white/10 bg-black/10">
-        <div className="flex items-center justify-between px-2">
-          <div className="flex gap-3 text-slate-500">
-            <span title="LangGraph Engine"><Network size={16} className="hover:text-[#22d3ee] cursor-help" /></span>
-            <span title="Docling Parser"><FileText size={16} className="hover:text-[#22d3ee] cursor-help" /></span>
-            <span title="Local LLM Enabled"><Cpu size={16} className="hover:text-[#22d3ee] cursor-help" /></span>
+      {/* Footer Profile */}
+      <div className="p-6 mt-auto border-t border-white/10 bg-white/5 backdrop-blur-md">
+        <div className="flex items-center gap-3 mb-6 p-2 rounded-2xl bg-white/20 border border-white/30 shadow-sm accent-light">
+          <div className="size-10 rounded-xl bg-gradient-to-br from-[#1a2b4c] to-[#00b5ad] flex items-center justify-center text-white font-bold shadow-md">
+            SR
           </div>
-          <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-white">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-[#1a2b4c] truncate">Senior Researcher</p>
+            <p className="text-[10px] text-slate-500 font-medium">Free Tier</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between px-1">
+          <div className="flex gap-4 text-slate-400">
+            <span title="LangGraph Engine"><Network size={18} className="hover:text-[#00b5ad] cursor-help transition-colors" /></span>
+            <span title="Docling Parser"><FileText size={18} className="hover:text-[#00b5ad] cursor-help transition-colors" /></span>
+            <span title="Local LLM Enabled"><Cpu size={18} className="hover:text-[#00b5ad] cursor-help transition-colors" /></span>
+          </div>
+          <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="size-8 silicone-convex rounded-lg flex items-center justify-center text-slate-500 hover:text-[#1a2b4c] transition-all">
             <Github size={18} />
           </a>
         </div>

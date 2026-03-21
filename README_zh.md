@@ -91,7 +91,8 @@ cp .env.example .env
 cd backend
 python -m venv venv （只需第一次启动时运行）
 pip install -r requirements.txt （只需第一次启动时运行）
-uvicorn server:app --reload --port 8000
+.\venv\Scripts\uvicorn server:app --reload --port 8000
+
 ```
 
 ### 前端看板

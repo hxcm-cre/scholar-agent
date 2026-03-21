@@ -4,7 +4,7 @@ import { getAvailableModels } from '../services/api';
 import type { ResearchWeights, ModelOption } from '../types';
 
 interface ResearchConfigProps {
-  onSubmit: (query: string, modelName: string, weights: ResearchWeights, useOcr: boolean, userMetrics: string, csvData: string | null) => void;
+  onSubmit: (query: string, modelName: string, weights: ResearchWeights, useOcr: boolean, userMetrics: string, runBenchmark: boolean, csvData: string | null) => void;
   onBack: () => void;
   isSubmitting: boolean;
 }
@@ -19,6 +19,7 @@ export const ResearchConfig: React.FC<ResearchConfigProps> = ({ onSubmit, onBack
   const [model, setModel] = useState('');
   const [customModel, setCustomModel] = useState('');
   const [useOcr, setUseOcr] = useState(false);
+  const [runBenchmark, setRunBenchmark] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [weights, setWeights] = useState<ResearchWeights>({
     relevance: 0.5,
@@ -54,7 +55,7 @@ export const ResearchConfig: React.FC<ResearchConfigProps> = ({ onSubmit, onBack
       const buf = await csvFile.arrayBuffer();
       csvData = btoa(String.fromCharCode(...new Uint8Array(buf)));
     }
-    onSubmit(query, finalModel, weights, useOcr, userMetrics, csvData);
+    onSubmit(query, finalModel, weights, useOcr, userMetrics, runBenchmark, csvData);
   };
 
   const wSlider = (label: string, key: keyof ResearchWeights) => (
@@ -148,6 +149,12 @@ export const ResearchConfig: React.FC<ResearchConfigProps> = ({ onSubmit, onBack
                 <input type="checkbox" checked={useOcr} onChange={(e) => setUseOcr(e.target.checked)}
                   className="accent-[#22d3ee] w-4 h-4" />
                 <span className="text-sm text-slate-600">启用 OCR (扫描件/图片)</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer bg-cyan-50/50 p-2 rounded-lg border border-cyan-100/50 hover:bg-cyan-50 transition-colors">
+                <input type="checkbox" checked={runBenchmark} onChange={(e) => setRunBenchmark(e.target.checked)}
+                  className="accent-[#22d3ee] w-4 h-4" />
+                <span className="text-sm font-medium text-slate-700">关联实验数据进行 SOTA 对标</span>
               </label>
             </div>
 
