@@ -56,6 +56,12 @@
 
 ---
 
+<div align="center">
+  <img src="backend/assets/5.png" alt="Scholar-Agent Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+  <br />
+</div>
+
+---
 ## 🚀 Quick start
 
 ### 1. Environment variable configuration
@@ -91,7 +97,7 @@ First, enter the `backend` directory:
 cd backend
 python -m venv venv （Only run when starting for the first time）
 pip install -r requirements.txt （Only run when starting for the first time）
-uvicorn server:app --reload --port 8000
+.\venv\Scripts\uvicorn server:app --reload --port 8000
 ```
 
 ### Frontend dashboard

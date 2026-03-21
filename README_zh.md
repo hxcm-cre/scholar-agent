@@ -56,6 +56,12 @@
 
 ---
 
+<div align="center">
+  <img src="backend/assets/5.png" alt="Scholar-Agent 界面预览" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+  <br />
+</div>
+
+---
 ## 🚀 极速启动
 
 ### 1. 环境变量配置
