@@ -87,7 +87,7 @@ cp .env.example .env
 
 由于架构升级，系统现在需要多个组件并行运行：
 
-### 第一步：确保 Redis 已启动 (基石)
+### 第一步：确保 Redis 已启动
 ```powershell
 cd redis
 .\redis-server.exe

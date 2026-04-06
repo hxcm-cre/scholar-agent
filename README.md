@@ -25,7 +25,7 @@
 
 **Click to watch the full tutorial video on Bilibili:**
 
-[![Scholar-Agent Demo](https://img.shields.io/badge/Bilibili-Watch Tutorial Video-fb7299?style=for-the-badge&logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1AmwxzPEBF)
+[![Scholar-Agent Demo](https://img.shields.io/badge/Bilibili-video-fb7299?style=for-the-badge&logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1AmwxzPEBF)
 
 <div align="center">
   <img src="backend/assets/1.png" alt="Scholar-Agent Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
@@ -87,7 +87,7 @@ All core configuration settings are centralized in the `.env` configuration file
 
 Since the architecture upgrade, the system now requires several components to run in parallel:
 
-### Step 1: Ensure Redis is started (The Cornerstone)
+### Step 1: Ensure Redis is started
 ```powershell
 cd redis
 .\redis-server.exe
