@@ -8,7 +8,7 @@ import time # 导入时间模块
 
 QUERY_EXPANSION_SYSTEM_PROMPT = """\
 You are a literature search assistant.
-Review the original user query and the list of previously tried queries, propose 3-5 concise,
+Review the original user query and the list of previously tried queries, propose 2-3 concise,
 NEW, specific, academic-style search queries suitable for arXiv.
 DO NOT repeat the 'ALREADY SEARCHED' list
 Return JSON only:

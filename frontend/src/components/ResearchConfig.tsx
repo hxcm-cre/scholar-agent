@@ -145,15 +145,15 @@ export const ResearchConfig: React.FC<ResearchConfigProps> = ({ onSubmit, onBack
                 />
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer bg-slate-50/50 p-2 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
                 <input type="checkbox" checked={useOcr} onChange={(e) => setUseOcr(e.target.checked)}
-                  className="accent-[#22d3ee] w-4 h-4" />
-                <span className="text-sm text-slate-600">启用 OCR (扫描件/图片)</span>
+                  className="accent-[#22d3ee] w-4 h-4 cursor-pointer" />
+                <span className="text-sm font-medium text-slate-700">启用 OCR (扫描件/图片)</span>
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer bg-cyan-50/50 p-2 rounded-lg border border-cyan-100/50 hover:bg-cyan-50 transition-colors">
+              <label className="flex items-center gap-2 cursor-pointer bg-cyan-50/50 p-2 rounded-xl border border-cyan-100 hover:bg-cyan-50 transition-colors">
                 <input type="checkbox" checked={runBenchmark} onChange={(e) => setRunBenchmark(e.target.checked)}
-                  className="accent-[#22d3ee] w-4 h-4" />
+                  className="accent-[#22d3ee] w-4 h-4 cursor-pointer" />
                 <span className="text-sm font-medium text-slate-700">关联实验数据进行 SOTA 对标</span>
               </label>
             </div>

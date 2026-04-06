@@ -83,15 +83,23 @@ export const WorkflowStatus: React.FC<WorkflowStatusProps> = ({ projectId, onCom
       projectId,
       (evt: NodeStatusEvent) => {
         if (evt.type === 'node_status') {
-          setNodeStates(prev => ({ ...prev, [evt.node_name]: 'done' }));
           setProgress(evt.progress);
 
-          // Mark next node as running
-          const idx = PIPELINE_NODES.findIndex(n => n.key === evt.node_name);
-          if (idx < PIPELINE_NODES.length - 1) {
-            const next = PIPELINE_NODES[idx + 1].key;
-            setNodeStates(prev => prev[next] === 'done' ? prev : { ...prev, [next]: 'running' });
-          }
+          setNodeStates(prev => {
+            const newState = { ...prev };
+            const idx = PIPELINE_NODES.findIndex(n => n.key === evt.node_name);
+            if (idx !== -1) {
+              // Mark all nodes up to this one as done
+              for (let i = 0; i <= idx; i++) {
+                 newState[PIPELINE_NODES[i].key] = 'done';
+              }
+              // Mark next node as running
+              if (idx < PIPELINE_NODES.length - 1) {
+                 newState[PIPELINE_NODES[idx + 1].key] = 'running';
+              }
+            }
+            return newState;
+          });
         } else if (evt.type === 'complete') {
           setProgress(1);
           setCompleted(true);

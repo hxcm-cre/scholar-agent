@@ -217,6 +217,8 @@ def _smart_extract_markdown(source: str | bytes) -> str:
     # 2. 配置 OCR 选项 (工程化降级策略)
     pipeline_options = PdfPipelineOptions()
     pipeline_options.do_ocr = use_ocr_config
+    # 把渲染放大倍率缩小，直接能省出一半以上的内存！
+    pipeline_options.images_scale = 1.0  
     
     if use_ocr_config:
         pipeline_options.ocr_options = RapidOcrOptions(force_full_page_ocr=False)

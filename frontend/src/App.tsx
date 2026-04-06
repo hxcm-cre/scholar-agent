@@ -61,14 +61,26 @@ export default function App() {
       <Sidebar
         currentView={currentViewKind}
         onNavigateHome={goHome}
-        onSelectProject={(id) => setView({ kind: 'report', projectId: id })}
+        onSelectProject={(id, status) => {
+          if (status === 'running' || status === 'pending') {
+            setView({ kind: 'workflow', projectId: id });
+          } else {
+            setView({ kind: 'report', projectId: id });
+          }
+        }}
       />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         {view.kind === 'home' && (
           <ProjectList
             refreshKey={refreshKey}
-            onSelect={(id) => setView({ kind: 'report', projectId: id })}
+            onSelect={(id, status) => {
+              if (status === 'running' || status === 'pending') {
+                setView({ kind: 'workflow', projectId: id });
+              } else {
+                setView({ kind: 'report', projectId: id });
+              }
+            }}
             onNew={() => setView({ kind: 'config' })}
           />
         )}

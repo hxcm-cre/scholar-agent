@@ -14,7 +14,7 @@ import { getProjects } from '../services/api';
 interface SidebarProps {
   currentView: 'home' | 'config' | 'workflow' | 'report';
   onNavigateHome: () => void;
-  onSelectProject: (id: number) => void;
+  onSelectProject: (id: number, status: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -70,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {recentProjects.map(p => (
             <button
               key={p.id}
-              onClick={() => onSelectProject(p.id)}
+              onClick={() => onSelectProject(p.id, p.status)}
               className="w-full text-left px-4 py-2.5 rounded-xl text-xs font-medium text-slate-500 hover:text-[#1a2b4c] hover:bg-white/40 transition-all duration-200 line-clamp-1 border border-transparent hover:border-white/20 hover:shadow-sm"
               title={p.query}
             >

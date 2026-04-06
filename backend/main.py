@@ -6,7 +6,8 @@ from typing import Any, Dict
 
 from dotenv import load_dotenv
 from langgraph.graph import END, START, StateGraph
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
+import sqlite3
 from src.nodes.assistant_node import assistant_node
 from src.nodes.benchmark_node import benchmark_node
 from src.nodes.cloud_search_node import cloud_search_node
@@ -73,10 +74,11 @@ def build_graph() -> Any:
         },
     )
 
-    # 增加内存检查点
-    memory = MemorySaver()
+    # 持久化检查点
+    conn = sqlite3.connect("scholar_agent_checkpoints.db", check_same_thread=False)
+    saver = SqliteSaver(conn)
 
-    return graph.compile(checkpointer=memory)
+    return graph.compile(checkpointer=saver)
 
 
 def main() -> int:

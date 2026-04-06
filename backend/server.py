@@ -37,60 +37,71 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
-app = FastAPI(title="Scholar-Agent API", version="1.0.0")
+app = FastAPI(title="Scholar-Agent API", version="1.0.0") # 初始化 FastAPI 实例
 
-@app.get("/api/models")
-def get_available_models():
-    """List all available AI models for both search and chat."""
-    return {"models": AVAILABLE_MODELS}
+@app.get("/api/models") # 定义一个处理 GET 请求的路由，路径是 /api/models
+def get_available_models(): # 定义一个名为 get_available_models 的函数，用于处理 GET /api/models 请求
+    """List all available AI models for both search and chat.""" # 函数的文档字符串，解释函数的功能
+    return {"models": AVAILABLE_MODELS} # 返回一个字典，包含所有可用的 AI 模型
 
 # Allow origins from environment variable, stripping spaces
-cors_env = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
-if cors_env == "*":
+cors_env = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000") # 从环境变量中获取允许的来源，并去除空格
+if cors_env == "*": # 如果环境变量中的允许来源是 "*"，则允许所有来源
     CORS_ORIGINS = ["*"]
 else:
-    CORS_ORIGINS = [o.strip() for o in cors_env.split(",")]
+    CORS_ORIGINS = [o.strip() for o in cors_env.split(",")] # 将允许的来源按逗号分割，并去除空格
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+app.add_middleware( # 添加中间件，用于处理跨域请求
+    CORSMiddleware, # 跨域资源共享中间件
+    allow_origins=CORS_ORIGINS, # 允许的来源
+    allow_credentials=True, # 允许凭证
+    allow_methods=["*"], # 允许的方法
+    allow_headers=["*"], # 允许的头
 )
 
 # ---------------------------------------------------------------------------
 # WebSocket connection manager
 # ---------------------------------------------------------------------------
-class ConnectionManager:
-    """Manages per-project WebSocket connections."""
+LAST_EVENTS: Dict[int, str] = {}
 
-    def __init__(self):
-        self._connections: Dict[int, List[WebSocket]] = defaultdict(list)
+class ConnectionManager: # WebSocket 连接管理器
+    """Manages per-project WebSocket connections.""" # 管理每个项目的 WebSocket 连接
 
-    async def connect(self, project_id: int, ws: WebSocket):
-        await ws.accept()
-        self._connections[project_id].append(ws)
-
-    def disconnect(self, project_id: int, ws: WebSocket):
-        if project_id in self._connections:
-            if ws in self._connections[project_id]:
-                self._connections[project_id].remove(ws)
-            if not self._connections[project_id]:
-                del self._connections[project_id]
-
-    async def broadcast(self, project_id: int, event: NodeStatusEvent):
-        dead: list[WebSocket] = []
-        for ws in self._connections.get(project_id, []):
+    def __init__(self): # 初始化连接管理器
+        self._connections: Dict[int, List[WebSocket]] = defaultdict(list) # 存储每个项目的 WebSocket 连接
+    # 一次完整的文献检索任务对应一个 Project，而 ws (WebSocket) 是前端页面与后端建立的通信连接。
+    # 它们之间的关系可以理解为 1 对 N（一个项目可以有多个连接）：比如你在电脑浏览器里打开了一个页面在看某个检索进度，这就是一个 ws；如果你同时在手机上也打开了这个页面看同一个检索任务，那就是第二个 ws。
+    async def connect(self, project_id: int, ws: WebSocket): # 连接 WebSocket
+        await ws.accept() # 接受 WebSocket 连接
+        self._connections[project_id].append(ws) # 将 WebSocket 连接添加到连接管理器中
+        
+        # 补充：当新连接进来时，如果内存中有最后一次的状态，立即发给它，解决前端一进来进度条归 0 的问题
+        if project_id in LAST_EVENTS:
             try:
-                await ws.send_text(event.model_dump_json())
+                await ws.send_text(LAST_EVENTS[project_id])
             except Exception:
-                dead.append(ws)
-        for ws in dead:
-            self.disconnect(project_id, ws)
+                pass
 
 
-manager = ConnectionManager()
+    def disconnect(self, project_id: int, ws: WebSocket): # 断开 WebSocket 连接
+        if project_id in self._connections: # 如果项目在连接管理器中
+            if ws in self._connections[project_id]: # 如果 WebSocket 在连接管理器中
+                self._connections[project_id].remove(ws) # 将 WebSocket 从连接管理器中移除
+            if not self._connections[project_id]: # 如果连接管理器中没有 WebSocket
+                del self._connections[project_id] # 将项目从连接管理器中删除
+
+    async def broadcast(self, project_id: int, event: NodeStatusEvent): # 广播 WebSocket 事件
+        dead: list[WebSocket] = [] # 存储死连接
+        for ws in self._connections.get(project_id, []): # 遍历每个项目的 WebSocket 连接
+            try: # 尝试发送 WebSocket 事件
+                await ws.send_text(event.model_dump_json()) # 发送 WebSocket 事件
+            except Exception: # 如果发送失败
+                dead.append(ws) # 将死连接添加到列表中
+        for ws in dead: # 遍历死连接
+            self.disconnect(project_id, ws) # 断开 WebSocket 连接
+
+
+manager = ConnectionManager() # 创建连接管理器实例
 
 # ---------------------------------------------------------------------------
 # Node label mapping (for UI display)
@@ -106,199 +117,55 @@ NODE_LABELS: Dict[str, str] = {
 
 
 # ---------------------------------------------------------------------------
-# Background agent runner
+# Redis Pub/Sub WebSocket Broadcaster
 # ---------------------------------------------------------------------------
-def _run_agent_sync(project_id: int, req: ResearchRequest):
-    """
-    Runs the LangGraph agent synchronously (called via asyncio.to_thread).
-    Broadcasts node status via the WebSocket manager.
-    """
-    # --- lazy import so server startup stays fast ---
-    from main import build_graph
-
-    db: Session = SessionLocal()
+async def listen_to_redis_for_ws(): 
+    """Background task to listen to Redis and broadcast to WebSockets."""
+    import redis.asyncio as aioredis
+    REDIS_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
     try:
-        # Update project status → running
-        proj = db.query(Project).filter(Project.id == project_id).first()
-        if not proj:
-            return
-        proj.status = "running"
-        db.commit()
-
-        # Configure env
-        os.environ["SELECTED_MODEL_NAME"] = req.model_name
-        os.environ["USE_OCR"] = "1" if req.use_ocr else "0"
-
-        # Handle optional CSV upload
-        csv_path = None
-        if req.csv_data:
-            csv_path = os.path.join("data", f"upload_{project_id}.csv")
-            os.makedirs("data", exist_ok=True)
-            with open(csv_path, "wb") as f:
-                f.write(base64.b64decode(req.csv_data))
-            os.environ["EXPERIMENT_CSV_PATH"] = csv_path
-
-        # Build & run graph
-        thread_id = f"project_{project_id}"
-        config = {"configurable": {"thread_id": thread_id}}
-        graph_app = build_graph()
-
-        run_input: Dict[str, Any] = {
-            "query": req.query,
-            "zotero_matches": [],
-            "candidate_papers": [],
-            "top_tier_papers": [],
-            "paper_metrics": {},
-            "experiment_results": {},
-            "analysis_report": "",
-            "iteration": 0,
-            "max_iterations": 2,
-            "done": False,
-            "metrics_log": {"total_tokens": {}, "node_durations": {}},
-            "user_metrics": req.user_metrics,
-            "run_benchmark": req.run_benchmark,
-        }
-
-        total_steps = 6
-        current_step = 0
-        final_state_snapshot: Dict[str, Any] = {}
-        start_time = time.time()
-
-        loop = asyncio.new_event_loop()
-
-        for event in graph_app.stream(run_input, config=config, stream_mode="updates"):
-            for node_name, node_output in event.items():
-                current_step += 1
-                detail = NODE_LABELS.get(node_name, node_name)
-                progress = min(current_step / total_steps, 1.0)
-
-                # Broadcast via WebSocket
-                status_event = NodeStatusEvent(
-                    type="node_status",
-                    node_name=node_name,
-                    status="done",
-                    detail=f"✅ 已完成: {detail}",
-                    progress=progress,
-                )
-                loop.run_until_complete(manager.broadcast(project_id, status_event))
-
-                final_state_snapshot.update(node_output)
-
-        # Full state from checkpointer
-        full_state = graph_app.get_state(config).values
-
-        end_time = time.time()
-        durations = full_state.get("metrics_log", {}).get("node_durations", {})
-        total_tokens = full_state.get("metrics_log", {}).get("total_tokens", {})
-
-        # Build performance footer
-        used_model = os.getenv("SELECTED_MODEL_NAME", "Unknown")
-        time_cost = sum(durations.values())
-        tokens_cost = sum(total_tokens.values()) if isinstance(total_tokens, dict) else 0
-
-        perf_lines = [
-            "",
-            "---",
-            "### 📈 System Performance Metrics",
-            f"- 🧠 `LLM Model`: `{used_model}`",
-            f"- 👁️ `OCR Mode`: {'Enabled' if req.use_ocr else 'Disabled'}",
-            f"- ⏱️ `Total Latency`: {round(time_cost, 2)}s",
-            f"- 🎟️ `Total Tokens`: {tokens_cost} tokens",
-        ]
-        for nk, label in NODE_LABELS.items():
-            _map = {"assistant": "assistant", "zotero": "zotero_search",
-                     "query_expansion": "query_expansion", "cloud_search": "cloud_search",
-                     "filter": "filter", "evaluator": "benchmark_node"}
-            real_key = _map.get(nk, nk)
-            t = durations.get(real_key, 0)
-            tk = total_tokens.get(real_key, 0) if isinstance(total_tokens, dict) else 0
-            perf_lines.append(f"  - `{nk}`: {t}s, ({tk} tokens)")
-
-        report_md = full_state.get("analysis_report", "") + "\n".join(perf_lines)
-
-        # --- Persist to DB ---
-        # 1. Literature
-        for paper in full_state.get("top_tier_papers", []):
-            lit = Literature(
-                project_id=project_id,
-                title=paper.get("title", ""),
-                authors=", ".join(paper.get("authors", [])) if isinstance(paper.get("authors"), list) else str(paper.get("authors", "")),
-                year=paper.get("year"),
-                venue=paper.get("venue", ""),
-                doi=paper.get("doi", ""),
-                url=paper.get("url", paper.get("link", "")),
-                abstract=paper.get("abstract", "")[:2000],
-                citations=int(paper.get("citationCount", paper.get("citations", 0)) or 0),
-                score=float(paper.get("_score", paper.get("score", 0)) or 0),
-                source=paper.get("source", "arxiv"),
-                full_text=paper.get("full_text_cache", ""),
-            )
-            db.add(lit)
-
-        # 2. Report
-        metrics_payload = {
-            "node_durations": durations,
-            "total_tokens": total_tokens,
-            "total_latency": round(end_time - start_time, 2),
-        }
-        report_row = Report(
-            project_id=project_id,
-            content_markdown=report_md,
-            metrics_json=json.dumps(metrics_payload, ensure_ascii=False),
-        )
-        db.add(report_row)
-
-        # 3. Update project status
-        proj.status = "done"
-        db.commit()
-
-        # Broadcast completion
-        loop.run_until_complete(
-            manager.broadcast(
-                project_id,
-                NodeStatusEvent(type="complete", node_name="", status="done",
-                                detail="研究任务已完成", progress=1.0),
-            )
-        )
-        loop.close()
-
-    except Exception as exc:
-        traceback.print_exc()
-        proj = db.query(Project).filter(Project.id == project_id).first()
-        if proj:
-            proj.status = "error"
-            proj.error_message = str(exc)[:2000]
-            db.commit()
-
-        try:
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(
-                manager.broadcast(
-                    project_id,
-                    NodeStatusEvent(type="error", node_name="", status="error",
-                                    detail=str(exc)[:500], progress=0),
-                )
-            )
-            loop.close()
-        except Exception:
-            pass
-    finally:
-        db.close()
+        redis = aioredis.from_url(REDIS_URL, decode_responses=True)
+        pubsub = redis.pubsub()
+        await pubsub.psubscribe("ws_project_*")
+        print("Started listening to Redis Pub/Sub for WebSockets...")
+        
+        async for message in pubsub.listen():
+            if message["type"] == "pmessage":
+                channel = message["channel"]
+                data = message["data"]
+                try:
+                    # extract project_id from ws_project_{id} 
+                    project_id = int(channel.split("_")[-1])
+                    # update last known event cache
+                    LAST_EVENTS[project_id] = data
+                    # broadcast to all websockets of this project
+                    try:
+                        event = NodeStatusEvent.model_validate_json(data)
+                    except AttributeError:
+                        # Fallback for older pydantic
+                        import json as _json
+                        event = NodeStatusEvent(**_json.loads(data))
+                    await manager.broadcast(project_id, event)
+                except Exception as e:
+                    print(f"Error broadcasting ws message: {e}")
+    except Exception as e:
+        print(f"Failed to connect to Redis for Pub/Sub: {e}")
 
 
 # ---------------------------------------------------------------------------
 # Startup
 # ---------------------------------------------------------------------------
-@app.on_event("startup")
-def on_startup():
-    init_db()
+@app.on_event("startup") # 启动时执行
+async def on_startup():
+    init_db() # 初始化数据库
+    asyncio.create_task(listen_to_redis_for_ws())
 
 
 # ---------------------------------------------------------------------------
 # REST Endpoints - Projects
 # ---------------------------------------------------------------------------
-@app.post("/api/research", response_model=ProjectOut)
-async def create_research(req: ResearchRequest, bg: BackgroundTasks, db: Session = Depends(get_db)):
+@app.post("/api/research", response_model=ProjectOut) # 创建研究
+async def create_research(req: ResearchRequest, bg: BackgroundTasks, db: Session = Depends(get_db)): # 请求
     """Create a project and start the agent in background."""
     import json as _json
 
@@ -309,54 +176,83 @@ async def create_research(req: ResearchRequest, bg: BackgroundTasks, db: Session
         weights_json=_json.dumps(req.weights.model_dump(), ensure_ascii=False),
         user_metrics=req.user_metrics,
     )
-    db.add(project)
-    db.commit()
-    db.refresh(project)
+    db.add(project) # 将项目添加到数据库会话中
+    db.commit() # 提交事务
+    db.refresh(project) # 刷新项目
 
-    # Launch background thread
-    bg.add_task(asyncio.to_thread, _run_agent_sync, project.id, req)
+    # Launch background thread via Celery
+    from tasks import run_research_task
+    try:
+        req_dict = req.model_dump()
+    except AttributeError:
+        req_dict = req.dict()
+    run_research_task.delay(project.id, req_dict)
 
     return project
 
 
-@app.get("/api/projects", response_model=list[ProjectOut])
-def list_projects(db: Session = Depends(get_db)):
+@app.get("/api/projects", response_model=list[ProjectOut]) # 获取所有项目
+def list_projects(db: Session = Depends(get_db)): # 依赖注入数据库会话
     """Return all projects, newest first."""
-    return db.query(Project).order_by(Project.created_at.desc()).all()
+    return db.query(Project).order_by(Project.created_at.desc()).all() # 按创建时间倒序排列
 
 
-@app.get("/api/projects/{project_id}", response_model=ProjectDetail)
-def get_project(project_id: int, db: Session = Depends(get_db)):
+@app.get("/api/projects/{project_id}", response_model=ProjectDetail) # 获取项目详情
+def get_project(project_id: int, db: Session = Depends(get_db)): # 依赖注入数据库会话
     """Return full project detail including literature and reports."""
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(status_code=404, detail="Project not found")
+    proj = db.query(Project).filter(Project.id == project_id).first() # 查询项目
+    if not proj: # 如果项目不存在
+        raise HTTPException(status_code=404, detail="Project not found") # 抛出 404 错误
     return proj
 
 
-@app.delete("/api/projects/{project_id}")
-def delete_project(project_id: int, db: Session = Depends(get_db)):
+@app.delete("/api/projects/{project_id}") # 删除项目
+def delete_project(project_id: int, db: Session = Depends(get_db)): # 依赖注入数据库会话
     """Delete project and all related data."""
-    proj = db.query(Project).filter(Project.id == project_id).first()
-    if not proj:
-        raise HTTPException(status_code=404, detail="Project not found")
+    proj = db.query(Project).filter(Project.id == project_id).first() # 查询项目
+    if not proj: # 如果项目不存在
+        raise HTTPException(status_code=404, detail="Project not found") # 抛出 404 错误
     db.delete(proj)
     db.commit()
     return {"detail": "deleted"}
 
-
-@app.post("/api/lit/chat")
-async def paper_chat(req: PaperChatRequest, db: Session = Depends(get_db)):
-    """Localized chat with a specific paper's full text."""
-    lit = db.query(Literature).filter(Literature.id == req.literature_id).first()
-    if not lit:
-        raise HTTPException(status_code=404, detail="Paper not found")
+@app.post("/api/projects/{project_id}/cancel")
+def cancel_project(project_id: int, db: Session = Depends(get_db)):
+    """Cancel a running project by sending a flag to Redis that the Worker intercepts."""
+    from redis import Redis
+    proj = db.query(Project).filter(Project.id == project_id).first()
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+        
+    REDIS_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+    r = Redis.from_url(REDIS_URL, decode_responses=True)
     
-    if not lit.full_text:
+    # Send cancel flag for tasks.py to catch natively inside the event loop
+    r.set(f"cancel_project_{project_id}", "1", ex=3600)  # expires in 1h
+    
+    # Broadcast early cancellation to frontend to improve UX
+    try:
+        r.publish(f"ws_project_{project_id}", NodeStatusEvent(
+            type="error", node_name="", status="error", detail="正在通知 Worker 取消任务...", progress=0
+        ).model_dump_json())
+    except:
+        pass
+    
+    return {"detail": "cancellation requested"}
+
+
+@app.post("/api/lit/chat") # 论文聊天
+async def paper_chat(req: PaperChatRequest, db: Session = Depends(get_db)): # 依赖注入数据库会话
+    """Localized chat with a specific paper's full text."""
+    lit = db.query(Literature).filter(Literature.id == req.literature_id).first() # 查询论文
+    if not lit: # 如果论文不存在
+        raise HTTPException(status_code=404, detail="Paper not found") # 抛出 404 错误
+    
+    if not lit.full_text: # 如果论文没有全文
         # Fallback to abstract if full text is missing
-        context = f"Title: {lit.title}\nAbstract: {lit.abstract}"
+        context = f"Title: {lit.title}\nAbstract: {lit.abstract}" # 使用摘要作为上下文
     else:
-        context = lit.full_text
+        context = lit.full_text # 使用全文作为上下文
 
     system_prompt = f"""你现在是一个学术审阅助理。你唯一可以引用的知识来源是以下提供的 <Fulltext_Markdown>。
 回答用户提问的问题需要基于原文的信息。如果用户提问的问题在原文中没有提及，可以适当扩展，但是不要编造。
@@ -366,53 +262,53 @@ async def paper_chat(req: PaperChatRequest, db: Session = Depends(get_db)):
 </Fulltext_Markdown>
 """
     
-    messages = [SystemMessage(content=system_prompt)]
-    for m in req.history:
-        if m["role"] == "user":
-            messages.append(HumanMessage(content=m["content"]))
-        else:
-            messages.append(AIMessage(content=m["content"]))
+    messages = [SystemMessage(content=system_prompt)] # 系统消息
+    for m in req.history: # 遍历历史消息
+        if m["role"] == "user": # 如果是用户消息
+            messages.append(HumanMessage(content=m["content"])) # 添加用户消息
+        else: # 如果是 AI 消息
+            messages.append(AIMessage(content=m["content"])) # 添加 AI 消息
     
-    messages.append(HumanMessage(content=req.message))
+    messages.append(HumanMessage(content=req.message)) # 添加用户消息
 
     # Use the model requested by the user
     model_name = req.model_name
-    llm = make_qwen_llm(model_name=model_name, temperature=0.1)
+    llm = make_qwen_llm(model_name=model_name, temperature=0.1) # 创建 Qwen LLM 实例
     
     try:
-        resp = await asyncio.to_thread(llm.invoke, messages)
-        return {"answer": resp.content}
+        resp = await asyncio.to_thread(llm.invoke, messages) # 调用 LLM
+        return {"answer": resp.content} # 返回答案
     except Exception as e:
         print(f"LLM Error: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"LLM Error: {e}")
 
 
-@app.post("/api/lit/note")
-def save_paper_note(req: PaperNoteRequest, db: Session = Depends(get_db)):
+@app.post("/api/lit/note") # 保存论文笔记
+def save_paper_note(req: PaperNoteRequest, db: Session = Depends(get_db)): # 依赖注入数据库会话
     """Save user note to a specific paper."""
-    lit = db.query(Literature).filter(Literature.id == req.literature_id).first()
-    if not lit:
-        raise HTTPException(status_code=404, detail="Paper not found")
+    lit = db.query(Literature).filter(Literature.id == req.literature_id).first() # 查询论文
+    if not lit: # 如果论文不存在
+        raise HTTPException(status_code=404, detail="Paper not found") # 抛出 404 错误
     
     # Append the new note to existing notes with a separator
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-    new_entry = f"\n\n--- Added on {timestamp} ---\n{req.note}"
-    lit.user_notes = (lit.user_notes or "") + new_entry
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S") # 获取当前时间
+    new_entry = f"\n\n--- Added on {timestamp} ---\n{req.note}" # 添加新笔记
+    lit.user_notes = (lit.user_notes or "") + new_entry # 将新笔记添加到现有笔记中
     
-    db.commit()
-    return {"status": "success", "user_notes": lit.user_notes}
+    db.commit() # 提交事务
+    return {"status": "success", "user_notes": lit.user_notes} # 返回状态和笔记
 
 
 # ---------------------------------------------------------------------------
 # WebSocket
 # ---------------------------------------------------------------------------
-@app.websocket("/ws/research/{project_id}")
-async def websocket_endpoint(websocket: WebSocket, project_id: int):
-    await manager.connect(project_id, websocket)
+@app.websocket("/ws/research/{project_id}") # WebSocket
+async def websocket_endpoint(websocket: WebSocket, project_id: int): # 依赖注入 WebSocket 和项目 ID
+    await manager.connect(project_id, websocket) # 连接到 WebSocket
     try:
         while True:
             # Keep connection alive; client may send pings
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(project_id, websocket)
+            await websocket.receive_text() # 接收文本
+    except WebSocketDisconnect: # 捕获 WebSocket 断开连接异常
+        manager.disconnect(project_id, websocket) # 断开连接

@@ -12,7 +12,7 @@ import time # 导入时间模块
 ARXIV_API_URL = "https://export.arxiv.org/api/query"
 
 
-def _arxiv_http_search(query: str, limit: int = 20) -> List[Dict[str, Any]]:
+def _arxiv_http_search(query: str, limit: int = 10) -> List[Dict[str, Any]]:
     """Search papers on arXiv using the public Atom API.
 
     Note: This returns arXiv preprints (with direct PDF URLs), which avoids the
@@ -134,7 +134,15 @@ def cloud_search_node(state: AgentState) -> Dict[str, Any]: # 云搜索
     start = time.time()
     base_query = (state.get("query") or "").strip() # 获取查询
     expanded = state.get("current_queries") or [] # 获取扩展查询
-    queries = expanded or ([base_query] if base_query else []) # 获取查询 第一优先级 expanded， 第二优先级 base_query，最终保底 []
+    
+    # 结合基础查询和扩展查询
+    query_parts = []
+    if base_query:
+        query_parts.append(base_query)
+    if expanded:
+        query_parts.extend(expanded)
+        
+    combined_query = " ".join(query_parts)
 
     zotero = state.get("zotero_matches") or [] # 获取 Zotero 匹配
     zotero_dois = {str(z.get("doi") or "").lower().strip() for z in zotero if z.get("doi")} # 获取 Zotero DOI
@@ -142,19 +150,19 @@ def cloud_search_node(state: AgentState) -> Dict[str, Any]: # 云搜索
     all_candidates: List[Dict[str, Any]] = [] # 创建一个空列表，用于存储候选论文
     errors: List[str] = [] # 创建一个空列表，用于存储错误
 
-    for q in queries[:5]:
-        try:
-            items = _arxiv_http_search(q, limit=20)
-        except (urllib.error.URLError, TimeoutError, ET.ParseError) as e:
-            errors.append(f"arxiv_http_failed:{e}")
-            continue
+    try:
+        # 一次性调用搜索接口，获取较多结果
+        items = _arxiv_http_search(combined_query, limit=10)
+    except (urllib.error.URLError, TimeoutError, ET.ParseError) as e:
+        errors.append(f"arxiv_http_failed:{e}")
+        items = []
 
-        for p in items:
-            doi = (p.get("doi") or "").lower().strip() # 获取 DOI
-            if doi and doi in zotero_dois: # 如果 DOI 已经在集合中，则跳过
-                # Skip duplicates already present in Zotero library
-                continue # 跳过重复的论文
-            all_candidates.append(p) # 将论文添加到候选论文列表中
+    for p in items:
+        doi = (p.get("doi") or "").lower().strip() # 获取 DOI
+        if doi and doi in zotero_dois: # 如果 DOI 已经在集合中，则跳过
+            # Skip duplicates already present in Zotero library
+            continue # 跳过重复的论文
+        all_candidates.append(p) # 将论文添加到候选论文列表中
 
     deduped = _dedup_by_doi_and_id(all_candidates) # 去重
 

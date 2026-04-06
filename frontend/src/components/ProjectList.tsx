@@ -4,7 +4,7 @@ import type { Project } from '../types';
 import { getProjects, deleteProject } from '../services/api';
 
 interface ProjectListProps {
-  onSelect: (id: number) => void;
+  onSelect: (id: number, status: string) => void;
   onNew: () => void;
   refreshKey: number;
 }
@@ -103,19 +103,19 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onSelect, onNew, refre
             {/* Running column */}
             <Column title="进行中" count={grouped.running.length} color="blue">
               {grouped.running.map(p => (
-                <ProjectCard key={p.id} project={p} onClick={() => onSelect(p.id)} onDelete={handleDelete} />
+                <ProjectCard key={p.id} project={p} onClick={() => onSelect(p.id, p.status)} onDelete={handleDelete} />
               ))}
             </Column>
             {/* Done column */}
             <Column title="已完成" count={grouped.done.length} color="emerald">
               {grouped.done.map(p => (
-                <ProjectCard key={p.id} project={p} onClick={() => onSelect(p.id)} onDelete={handleDelete} />
+                <ProjectCard key={p.id} project={p} onClick={() => onSelect(p.id, p.status)} onDelete={handleDelete} />
               ))}
             </Column>
             {/* Error column */}
             <Column title="失败" count={grouped.error.length} color="red">
               {grouped.error.map(p => (
-                <ProjectCard key={p.id} project={p} onClick={() => onSelect(p.id)} onDelete={handleDelete} />
+                <ProjectCard key={p.id} project={p} onClick={() => onSelect(p.id, p.status)} onDelete={handleDelete} />
               ))}
             </Column>
           </div>
