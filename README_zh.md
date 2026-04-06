@@ -83,31 +83,63 @@ cp .env.example .env
 | `EXPERIMENT_CSV_PATH` | 用于指定生成的定量分析 CSV 文件的存放目录。（可选） |
 ---
 
-## 2.  本地开发环境设置
+## 2. 本地开发环境设置
 
-将后端和前端分别启动：
+由于架构升级，系统现在需要多个组件并行运行：
 
-### 依赖要求
-- Python 3.11 及以上版本
-- Node.js v18 及以上版本
-
-### 后端核心
-首先进入 `backend` 目录：
-```bash
-cd backend
-python -m venv venv （只需第一次启动时运行）
-pip install -r requirements.txt （只需第一次启动时运行）
-.\venv\Scripts\uvicorn server:app --reload --port 8000
-
+### 第一步：确保 Redis 已启动 (基石)
+```powershell
+cd redis
+.\redis-server.exe
 ```
 
-### 前端看板
-打开一个**全新的终端**并进入 `frontend` 目录：
-```bash
+---
+
+### 第二步：开启 FastAPI 纯接口网关 (终端 1)
+这是所有 API 的收发枢纽。
+```powershell
+# 1. 进入后端目录
+cd backend
+
+# 2. 激活虚拟环境
+.\venv\Scripts\Activate.ps1
+
+# 3. 开启服务
+python -m uvicorn server:app --reload
+```
+🔔 **成功标志**：显示 `Uvicorn running on http://127.0.0.1:8000`
+
+---
+
+### 第三步：开启 Celery 运算集群 (终端 2)
+负责重负载计算：解析 PDF 与执行 Agent 推理链路。
+```powershell
+# 1. 同样进入后端目录
+cd backend
+
+# 2. 激活虚拟环境
+.\venv\Scripts\Activate.ps1
+
+# 3. 开启工作节点（注意Windows必须要加 --pool=solo）
+celery -A celery_app worker --loglevel=info --pool=solo
+```
+🔔 **成功标志**：显示金字塔形状的 `[celery@...] ready.`
+
+---
+
+### 第四步：开启漂亮的前端界面 (终端 3)
+```powershell
+# 1. 进入前端目录
 cd frontend
-npm install （只需第一次启动时运行）
+
+# 2. 安装依赖（只需第一次启动时运行）
+npm install
+
+# 3. 运行本地开发服务器
 npm run dev
 ```
+🔔 **成功标志**：显示 `VITE v5.x.x ready in ...` 以及访问链接 `http://localhost:5173/`。
+
 
 ---
 

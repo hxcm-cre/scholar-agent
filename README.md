@@ -85,28 +85,61 @@ All core configuration settings are centralized in the `.env` configuration file
 
 ## 2.  Local development environment setup
 
-Start the backend and frontend separately:
+Since the architecture upgrade, the system now requires several components to run in parallel:
 
-### Dependency requirements
-- Python 3.11 and above
-- Node.js v18 and above
-
-### Backend core
-First, enter the `backend` directory:
-```bash
-cd backend
-python -m venv venv （Only run when starting for the first time）
-pip install -r requirements.txt （Only run when starting for the first time）
-.\venv\Scripts\uvicorn server:app --reload --port 8000
+### Step 1: Ensure Redis is started (The Cornerstone)
+```powershell
+cd redis
+.\redis-server.exe
 ```
 
-### Frontend dashboard
-Open a **new terminal** and enter the `frontend` directory:
-```bash
+---
+
+### Step 2: Start FastAPI Gateway (Terminal 1)
+This is the central hub for all API requests.
+```powershell
+# 1. Enter the backend directory
+cd backend
+
+# 2. Activate the virtual environment
+.\venv\Scripts\Activate.ps1
+
+# 3. Start the service
+python -m uvicorn server:app --reload
+```
+🔔 **Success Criteria**: Terminal shows `Uvicorn running on http://127.0.0.1:8000`
+
+---
+
+### Step 3: Start Celery Computing Cluster (Terminal 2)
+This handles the heavy lifting: PDF parsing and Agent reasoning.
+```powershell
+# 1. Enter the backend directory
+cd backend
+
+# 2. Activate the virtual environment
+.\venv\Scripts\Activate.ps1
+
+# 3. Start the worker (Note: --pool=solo is required on Windows)
+celery -A celery_app worker --loglevel=info --pool=solo
+```
+🔔 **Success Criteria**: Terminal shows the pyramid icon and `[celery@...] ready.`
+
+---
+
+### Step 4: Start the Frontend Interface (Terminal 3)
+```powershell
+# 1. Enter the frontend directory
 cd frontend
-npm install （Only run when starting for the first time）
+
+# 2. Install dependencies (First time only)
+npm install
+
+# 3. Run development server
 npm run dev
 ```
+🔔 **Success Criteria**: Terminal shows `VITE v5.x.x ready in ...` and the link `http://localhost:5173/`.
+
 
 ---
 
