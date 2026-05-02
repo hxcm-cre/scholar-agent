@@ -180,6 +180,7 @@ def run_research_task(self, project_id: int, req_dict: dict):
             "node_durations": durations,
             "total_tokens": total_tokens,
             "total_latency": round(end_time - start_time, 2),
+            "retrieval_precision": full_state.get("retrieval_precision", {}),
         }
         report_row = Report( # 创建报告
             project_id=project_id,

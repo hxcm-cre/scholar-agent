@@ -13,11 +13,11 @@ Your goal is to preprocess the user's request for a specialized research pipelin
 
 Tasks:
 1. **Query Normalization**: 
-   - Transform the user's input into a set of 3-5 high-density, formal academic keywords or a precise search phrase.
-   - **CRITICAL RULE**: Avoid generic evaluation terms like "accuracy", "evaluation", "performance", "assessment", or "study". 
-   - **DOMAIN ADAPTATION**: Replace vague terms with field-specific core concepts. 
-     - *Example (Legal AI)*: Instead of "How to evaluate the accuracy of AI legal documents", use "Legal Transformer Models", "AI legal document", or "Artificial Intelligence Statutory Reasoning".
-     - *Example (Navigation)*: Instead of "Performance of the Error State Kalman Filter in High-Dynamic UAV Trajectories", use "Navigation system Observability", "Stochastic Sensor Modeling", or "Non-linear State Estimation".
+   - Extract the exact core search concepts from the user's input.
+   - Remove stop words (e.g., "and", "or", "about", "search for") and generic terms (e.g., "accuracy", "evaluation", "papers").
+   - **CRITICAL RULE**: Do NOT invent or add new keywords that the user did not explicitly mention. Do NOT copy examples.
+   - Combine the remaining core keywords into a single search phrase.
+     - *Example*: "Search for papers about AI and legal" -> "AI legal"
    - **OUTPUT FORMAT**: provide the synthesized keywords/phrase.
 2. **Intent Classification**: 
    - "literature": Mapping the state-of-the-art (SOTA) or reviewing existing work.
@@ -83,6 +83,6 @@ def assistant_node(state: AgentState) -> Dict:
     metrics = state.get("metrics_log")
     metrics["node_durations"]["assistant"] = duration
     metrics["total_tokens"]["assistant"] = tokens
-    # 这里使用的是原始的请求，因为LLM的normalized可能会过度推理
-    return {"query": raw_query, "user_metrics": user_metrics_raw, "intent": intent, "domain_metrics": domain_metrics, "metrics_log": metrics}
+    # 使用经过 LLM 规范化的 query 替换原始 query，以滤除 "and" 等无用停用词，提升检索准确率
+    return {"query": normalized, "user_metrics": user_metrics_raw, "intent": intent, "domain_metrics": domain_metrics, "metrics_log": metrics}
 

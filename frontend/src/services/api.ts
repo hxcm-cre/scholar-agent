@@ -1,10 +1,15 @@
 /// <reference types="vite/client" />
 /**
- * API service for communicating with the FastAPI backend.
- * Replaces the previous geminiService.ts (direct Gemini calls).
+ * API service for Scholar-Agent (OpenClaw-style conversational mode).
  */
 
-import type { Project, ProjectDetail, ResearchRequest, NodeStatusEvent, ModelOption } from '../types';
+import type {
+  ChatSession,
+  ChatSessionDetail,
+  ChatReply,
+  ModelOption,
+  LiteratureItem,
+} from '../types';
 
 const API_ROOT = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 const API_BASE = `${API_ROOT}/api`;
@@ -28,28 +33,48 @@ async function request<T>(path: string, opts?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-/** POST /api/research — create a project and start agent */
-export function createResearch(req: ResearchRequest): Promise<Project> {
-  return request<Project>('/research', {
+// ---------------------------------------------------------------------------
+// Chat Session API
+// ---------------------------------------------------------------------------
+
+/** POST /api/chat/sessions — create new chat session */
+export function createChatSession(modelName: string = 'qwen3-coder-30b-a3b-instruct'): Promise<ChatSession> {
+  return request<ChatSession>('/chat/sessions', {
     method: 'POST',
-    body: JSON.stringify(req),
+    body: JSON.stringify({ model_name: modelName }),
   });
 }
 
-/** GET /api/projects — list all projects */
-export function getProjects(): Promise<Project[]> {
-  return request<Project[]>('/projects');
+/** GET /api/chat/sessions — list all chat sessions */
+export function getChatSessions(): Promise<ChatSession[]> {
+  return request<ChatSession[]>('/chat/sessions');
 }
 
-/** GET /api/projects/:id — full detail */
-export function getProject(id: number): Promise<ProjectDetail> {
-  return request<ProjectDetail>(`/projects/${id}`);
+/** GET /api/chat/sessions/:id — get session with messages */
+export function getChatSession(id: string): Promise<ChatSessionDetail> {
+  return request<ChatSessionDetail>(`/chat/sessions/${id}`);
 }
 
-/** DELETE /api/projects/:id */
-export function deleteProject(id: number): Promise<void> {
-  return request<void>(`/projects/${id}`, { method: 'DELETE' });
+/** DELETE /api/chat/sessions/:id */
+export function deleteChatSession(id: string): Promise<void> {
+  return request<void>(`/chat/sessions/${id}`, { method: 'DELETE' });
 }
+
+/** POST /api/chat/sessions/:id/message — send a message */
+export function sendChatMessage(
+  sessionId: string,
+  message: string,
+  modelName: string,
+): Promise<ChatReply> {
+  return request<ChatReply>(`/chat/sessions/${sessionId}/message`, {
+    method: 'POST',
+    body: JSON.stringify({ message, model_name: modelName }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Models API
+// ---------------------------------------------------------------------------
 
 /** GET /api/models — list all available models */
 export function getAvailableModels(): Promise<{ models: ModelOption[] }> {
@@ -57,80 +82,41 @@ export function getAvailableModels(): Promise<{ models: ModelOption[] }> {
 }
 
 // ---------------------------------------------------------------------------
-// WebSocket
+// Paper API
 // ---------------------------------------------------------------------------
-export function connectWebSocket(
-  projectId: number,
-  onMessage: (evt: NodeStatusEvent) => void,
+
+/** GET /api/lit/:id — get a single paper */
+export function getLiterature(id: number): Promise<LiteratureItem> {
+  return request<LiteratureItem>(`/lit/${id}`);
+}
+
+// ---------------------------------------------------------------------------
+// Chat WebSocket (for real-time progress)
+// ---------------------------------------------------------------------------
+
+export function connectChatWebSocket(
+  sessionId: string,
+  onMessage: (data: any) => void,
   onClose?: () => void,
 ): WebSocket {
-  let wsUrl: string;
-  const apiRoot = import.meta.env.VITE_API_BASE_URL || '';
-
-  if (apiRoot.startsWith('http')) {
-    // Production / External URL
-    const url = new URL(apiRoot);
-    const proto = url.protocol === 'https:' ? 'wss' : 'ws';
-    wsUrl = `${proto}://${url.host}/ws/research/${projectId}`;
-  } else {
-    // Relative or Local
-    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const host = window.location.host;
-    wsUrl = `${proto}://${host}/ws/research/${projectId}`;
-  }
-
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  // Use current host and proxy port (8000 for backend)
+  const wsUrl = `${protocol}//${window.location.hostname}:8000/ws/chat/${sessionId}`;
+  
   const ws = new WebSocket(wsUrl);
-
-  ws.onopen = () => {
-    // Send a ping to keep connection alive
-    ws.send('ping');
-  };
-
-  ws.onmessage = (e) => {
+  
+  ws.onmessage = (event) => {
     try {
-      const data = JSON.parse(e.data) as NodeStatusEvent;
+      const data = JSON.parse(event.data);
       onMessage(data);
-    } catch {
-      console.warn('WS parse error', e.data);
+    } catch (e) {
+      console.error('Failed to parse WS message', e);
     }
   };
-
+  
   ws.onclose = () => {
-    onClose?.();
+    if (onClose) onClose();
   };
-
-  // Keep-alive ping every 25s
-  const pingInterval = setInterval(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send('ping');
-    } else {
-      clearInterval(pingInterval);
-    }
-  }, 25_000);
-
+  
   return ws;
-}
-
-/** POST /api/lit/chat — localized chat */
-export function chatPaper(litId: number, message: string, history: {role: string, content: string}[], modelName: string): Promise<{answer: string}> {
-  return request<{answer: string}>('/lit/chat', {
-    method: 'POST',
-    body: JSON.stringify({
-      literature_id: litId,
-      message,
-      history,
-      model_name: modelName
-    }),
-  });
-}
-
-/** POST /api/lit/note — save user note */
-export function savePaperNote(litId: number, note: string): Promise<{user_notes: string}> {
-  return request<{user_notes: string}>('/lit/note', {
-    method: 'POST',
-    body: JSON.stringify({
-      literature_id: litId,
-      note
-    }),
-  });
 }

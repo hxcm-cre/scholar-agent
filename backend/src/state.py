@@ -70,3 +70,6 @@ class AgentState(TypedDict, total=False):
     # --- Dual-Mode Control ---
     run_benchmark: bool      # 是否通过实验数据对标 SOTA
     eval_mode: str           # "benchmark" (对标) / "review" (综述) / "mismatch" (领域不匹配)
+
+    # --- Retrieval Precision ---
+    retrieval_precision: Dict[str, Any]  # 检索准确率统计 (details, precision_pct, etc.)

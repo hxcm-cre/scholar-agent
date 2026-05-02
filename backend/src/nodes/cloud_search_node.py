@@ -12,7 +12,7 @@ import time # 导入时间模块
 ARXIV_API_URL = "https://export.arxiv.org/api/query"
 
 
-def _arxiv_http_search(query: str, limit: int = 10) -> List[Dict[str, Any]]:
+def _arxiv_http_search(query: str, limit: int = 15) -> List[Dict[str, Any]]:
     """Search papers on arXiv using the public Atom API.
 
     Note: This returns arXiv preprints (with direct PDF URLs), which avoids the
@@ -31,9 +31,9 @@ def _arxiv_http_search(query: str, limit: int = 10) -> List[Dict[str, Any]]:
             "sortOrder": "descending",
         }
     )
-    url = f"{ARXIV_API_URL}?{params}"
-    req = urllib.request.Request(url, headers={"User-Agent": "Scholar-Agent/0.1"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    url = f"{ARXIV_API_URL}?{params}" # 拼接 URL
+    req = urllib.request.Request(url, headers={"User-Agent": "Scholar-Agent/0.1"}) # 创建请求
+    with urllib.request.urlopen(req, timeout=15) as resp: # 打开 URL
         return _parse_arxiv_atom(resp.read().decode("utf-8", errors="replace"))
 
 # 解析 arXiv API 返回的 XML 格式（Atom 协议）数据，并将其转化为一个包含论文元数据的字典列表。
@@ -152,7 +152,7 @@ def cloud_search_node(state: AgentState) -> Dict[str, Any]: # 云搜索
 
     try:
         # 一次性调用搜索接口，获取较多结果
-        items = _arxiv_http_search(combined_query, limit=10)
+        items = _arxiv_http_search(combined_query, limit=5)
     except (urllib.error.URLError, TimeoutError, ET.ParseError) as e:
         errors.append(f"arxiv_http_failed:{e}")
         items = []

@@ -90,7 +90,7 @@ class VenueRanker:
             return default_info
         v_name_clean = str(venue_name).strip()
         v_lower = v_name_clean.lower()
-        # 策略 B：精确匹配优先 (解决你提到的 IEEE TAC 搜不到的问题)
+        # 策略 B：精确匹配优先
         if v_lower in self.exact_map:
             res = self.exact_map[v_lower]
             rank_key = f"{res['type']}_{res['rank']}"
@@ -244,8 +244,8 @@ def _smart_extract_markdown(source: str | bytes) -> str:
             try:
                 return try_convert(fallback_options, max_pages=20)
             except Exception as final_e:
-                return f"彻底解析失败 (含降级尝试): {final_e}"
-        return f"Docling conversion failed: {e}"
+                return f"Error: 彻底解析失败 (含降级尝试): {final_e}"
+        return f"Error: Docling conversion failed: {e}"
 
 # 按文本块截取关键段落，保留更多信息但是消耗过多的token
 def _filter_relevant_context_dynamic(markdown_text: str, regex_patterns: List[str]) -> str:
@@ -358,6 +358,7 @@ def score_papers(
             "venue_rank": rank_info["rank"],
             "citation_count": c,
             "has_code": has_code,
+            "relevance_score": round(relevance_score, 4),  # 保存匹配度用于检索准确率统计
         }
         enriched["full_text_cache"] = full_text # 缓存全文供 benchmark_node 使用，避免重复解析
         scored.append(enriched)
@@ -411,7 +412,7 @@ def filter_node(state: AgentState) -> Dict[str, Any]: # 过滤论文
     ]
 
     ranked = score_papers(unique_candidates, query_keywords, **weights)
-    top = ranked[:10] # 获取得分最高的论文
+    top = ranked[:5] # 获取得分最高的论文
     # 更新已处理名单：将本轮选出的 top 论文标题加入历史记录
     new_titles = [p.get("title", "").strip().lower() for p in top]
     #updated_history = list(history_titles.union(new_titles))

@@ -3,152 +3,104 @@
 <img src="./logo.png" alt="Scholar-Agent 标志" width="180" />
 
 # 🎓 Scholar-Agent
-**全自动学术研究助理**
+**对话式 AI 学术研究助手**
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Agentic-orange)](https://langchain-ai.github.io/langgraph/)
-[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=flat&logo=docker)](https://www.docker.com/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL_3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 [English](README.md) • [简体中文](README_zh.md)
 
 <p align="center">
-    <strong>Scholar-Agent 可以从网络和本地 Zotero 自动检索、过滤并分析前沿论文，提炼量化的 SOTA 对比数据与技术建议。</strong>
+    <strong>Scholar-Agent 是一个支持多轮对话、自主调用的 AI 学术助理。它借鉴了 OpenClaw 的架构思想，采用“中控大模型 + 专项 Skill”的设计，能够自动检索文献、阅读全文并与你进行深度的学术探讨。</strong>
 </p>
 </div>
 
 ---
 
-## 📺 演示视频与界面截图
+## ✨ 核心特性 (V2.0)
 
-**点击前往 Bilibili 观看完整使用教程:**
+- 💬 **多轮对话能力**：类 ChatGPT 的对话式交互，让研究过程更自然。
+- 🤖 **中控大模型 (Manager)**：基于 Tool Calling 自主决定何时搜索论文、何时阅读全文或直接回答。
+- 🔍 **学术搜索 Skill**：集成了 LangGraph 流水线，支持从 arXiv 和 Zotero 自动检索、过滤并评分高质量论文。
+- 📖 **深度阅读 Skill**：一键提取并分析已检索论文的全文内容，支持侧边栏详情展示。
+- 🗂️ **持久化知识库**：会话级论文缓存，支持多轮对话中的上下文关联与引用。
+- 🔢 **智能引用机制**：AI 自动为发现的论文分配编号 `[1]`, `[2]`...，方便你在后续对话中随时点名分析。
 
-[![Scholar-Agent Demo](https://img.shields.io/badge/Bilibili-观看教程视频-fb7299?style=for-the-badge&logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1AmwxzPEBF)
+---
+
+## 📺 演示与界面截图
+
+*(注：界面截图正在更新以匹配最新的对话式 UI)*
 
 <div align="center">
-  <img src="backend/assets/1.png" alt="Scholar-Agent 界面预览" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+  <img src="backend/assets/chat_ui_zh_v2.png" alt="Scholar-Agent V2 界面" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
   <br />
-  <i>实时工作流跟踪：通过 WebSocket 在前端直观地观察智能体的每一个思考步骤</i>
+  <i>现代化对话界面：支持侧边栏会话管理、聊天流与论文详情面板</i>
 </div>
 
 ---
 
-<div align="center">
-  <img src="backend/assets/2.png" alt="Scholar-Agent 界面预览" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-  <br />
-</div>
-
----
-
-<div align="center">
-  <img src="backend/assets/3.png" alt="Scholar-Agent 界面预览" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-  <br />
-</div>
-
----
-
-<div align="center">
-  <img src="backend/assets/4.png" alt="Scholar-Agent 界面预览" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-  <br />
-</div>
-
----
-
-<div align="center">
-  <img src="backend/assets/5.png" alt="Scholar-Agent 界面预览" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-  <br />
-</div>
-
----
-## 🚀 极速启动
+## 🚀 快速启动
 
 ### 1. 环境变量配置
 ```bash
 # 拷贝预设的环境变量模板
 cp .env.example .env
 ```
----
 
-## ⚙️ 核心环境变量说明
-
-所有的核心配置项均集中在项目根目录（或 `backend` 目录）的 `.env` 配置文件中：
+### ⚙️ 核心环境变量说明
+请在 `backend/.env` 中配置以下项：
 
 | 变量键值 | 功能说明 |
 |---|---|
-| `OPENAI_API_KEY` | OpenAI 官方 API 密钥，用于驱动核心 Agent 决策与推理逻辑。 |
-| `ZOTERO_API_KEY` | Zotero 个人账号的 API 密钥，用于远程读取文献库数据。|
-| `ZOTERO_USER_ID` | 你的 Zotero 用户 ID（UserID），用于定位特定的个人/群组库。 |
-| `EXPERIMENT_CSV_PATH` | 用于指定生成的定量分析 CSV 文件的存放目录。（可选） |
+| `OPENAI_API_KEY` | 驱动核心 Agent 决策逻辑（支持 GPT-4, Qwen 等）。 |
+| `ZOTERO_API_KEY` | 用于集成 Zotero 个人文献库。 |
+| `ZOTERO_USER_ID` | 你的 Zotero 用户 ID。 |
+| `SELECTED_MODEL_NAME`| 中控大模型默认调用的模型名称。 |
+
 ---
 
-## 2. 本地开发环境设置
+## 2. 本地环境设置
 
-由于架构升级，系统现在需要多个组件并行运行：
-
-### 第一步：确保 Redis 已启动
+### 第一步：启动 Redis (终端 1)
 ```powershell
 cd redis
 .\redis-server.exe
 ```
 
----
-
-### 第二步：开启 FastAPI 纯接口网关 (终端 1)
-这是所有 API 的收发枢纽。
+### 第二步：启动后端网关 (终端 2)
 ```powershell
-# 1. 进入后端目录
 cd backend
-
-# 2. 激活虚拟环境
 .\venv\Scripts\Activate.ps1
-
-# 3. 开启服务
 python -m uvicorn server:app --reload
 ```
 🔔 **成功标志**：显示 `Uvicorn running on http://127.0.0.1:8000`
 
----
-
-### 第三步：开启 Celery 运算集群 (终端 2)
-负责重负载计算：解析 PDF 与执行 Agent 推理链路。
+### 第三步：启动 Celery 运算节点 (终端 3)
+负责后台的论文搜索与 PDF 处理。
 ```powershell
-# 1. 同样进入后端目录
 cd backend
-
-# 2. 激活虚拟环境
 .\venv\Scripts\Activate.ps1
-
-# 3. 开启工作节点（注意Windows必须要加 --pool=solo）
 celery -A celery_app worker --loglevel=info --pool=solo
 ```
-🔔 **成功标志**：显示金字塔形状的 `[celery@...] ready.`
 
----
-
-### 第四步：开启漂亮的前端界面 (终端 3)
+### 第四步：启动前端界面 (终端 4)
 ```powershell
-# 1. 进入前端目录
 cd frontend
-
-# 2. 安装依赖（只需第一次启动时运行）
 npm install
-
-# 3. 运行本地开发服务器
 npm run dev
 ```
-🔔 **成功标志**：显示 `VITE v5.x.x ready in ...` 以及访问链接 `http://localhost:5173/`。
-
+🔔 **成功标志**：显示 `VITE v6.x.x ready` 并提供访问链接 `http://localhost:3000/`。
 
 ---
 
-## 3.  运行scholar-agent
+## 3. 开始使用
 
-现在请打开浏览器并访问 **[http://localhost:3000](http://localhost:3000)**，即可开始使用该平台。
+1. 浏览器访问 **[http://localhost:3000](http://localhost:3000)**。
+2. 点击 **"新建对话"** 开启研究任务。
+3. 尝试输入：*"帮我搜索关于 Transformer 效率优化的最新论文"* 或 *"详细解释一下第 2 篇论文的方法论"*。
+
 ---
-
-<div align="center">
-Made with ❤️ for Researchers. 用人工智能加速人类科学进程。
-</div>
-

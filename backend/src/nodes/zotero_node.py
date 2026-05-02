@@ -207,7 +207,7 @@ def _format_match(item: Dict[str, Any]) -> Dict[str, Any]: # 格式化匹配
     }
 
 
-def search_local_zotero(query: str, *, top_k: int = 10) -> List[Dict[str, Any]]: # 搜索本地 Zotero
+def search_local_zotero(query: str, *, top_k: int = 5) -> List[Dict[str, Any]]: # 搜索本地 Zotero
     """
     Search local Zotero via Better BibTeX pull export (recommended) or a local JSON cache.
 

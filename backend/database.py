@@ -112,6 +112,37 @@ class Report(Base):
     project = relationship("Project", back_populates="reports")
 
 
+class ChatSession(Base):
+    """Multi-turn conversation session."""
+    __tablename__ = "chat_sessions"
+
+    id = Column(String(64), primary_key=True)  # UUID
+    title = Column(Text, default="新对话")
+    model_name = Column(String(128), default="")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
+
+    messages = relationship("ChatMessage", back_populates="session",
+                            cascade="all, delete-orphan",
+                            order_by="ChatMessage.created_at")
+
+
+class ChatMessage(Base):
+    """Single message in a conversation."""
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False)
+    role = Column(String(16), nullable=False)        # user / assistant / tool
+    content = Column(Text, default="")
+    tool_name = Column(String(64), nullable=True)     # e.g. "scholar_search"
+    paper_refs = Column(Text, default="[]")           # JSON list of literature IDs
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    session = relationship("ChatSession", back_populates="messages")
+
+
 # ---------------------------------------------------------------------------
 # Create tables
 # ---------------------------------------------------------------------------

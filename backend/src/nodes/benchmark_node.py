@@ -411,6 +411,39 @@ Return JSON:
         lines.append("*No relevant papers found yet.*")
     lines.append("")
 
+    # --- 检索准确率分析 (Retrieval Precision) ---
+    relevance_threshold = 0.15  # 匹配度 >= 此阈值视为「相关」
+    precision_details = []  # 用于前端柱状图渲染的结构化数据
+    total_output = len(all_accumulated_papers) if all_accumulated_papers else 0
+    relevant_count = 0
+
+    if all_accumulated_papers:
+        lines.append("## 🎯 Retrieval Precision Analysis")
+        lines.append("")
+        lines.append("| # | Paper Title | Relevance Score | Relevant? |")
+        lines.append("|:--|:---|:---:|:---:|")
+        for i, p in enumerate(all_accumulated_papers[:10], 1):
+            breakdown = p.get("score_breakdown") or {}
+            rel_score = breakdown.get("relevance_score", 0.0)
+            is_relevant = rel_score >= relevance_threshold
+            if is_relevant:
+                relevant_count += 1
+            status_icon = "✅" if is_relevant else "❌"
+            title_short = (p.get('title') or 'Untitled')[:55].replace('|', ' ')
+            lines.append(f"| {i} | {title_short}... | `{rel_score:.4f}` | {status_icon} |")
+            precision_details.append({
+                "name": f"P{i}",
+                "title": (p.get('title') or 'Untitled')[:40],
+                "relevance_score": round(rel_score, 4),
+                "is_relevant": is_relevant,
+            })
+
+        precision_ratio = (relevant_count / total_output * 100) if total_output > 0 else 0.0
+        lines.append("")
+        lines.append(f"> **📊 Overall Retrieval Precision**: `{relevant_count}/{total_output}` papers relevant = **`{precision_ratio:.1f}%`**")
+        lines.append(f"> Relevance threshold: `{relevance_threshold}` (keyword frequency score)")
+        lines.append("")
+
     # --- SOTA Comparison (Benchmark vs Review) ---
     if eval_mode == "benchmark":
         lines.append("## 📊 Quantitative Benchmark (SOTA)")
@@ -434,16 +467,27 @@ Return JSON:
     else:
         # Qualitative Review Mode
         lines.append("## 📖 Qualitative Literature Review")
-        if extracted_results:
-            for res in extracted_results:
-                if "review_data" in res:
-                    rd = res["review_data"]
-                    lines.append(f"### {res['title']}")
-                    lines.append(f"- **Methodology**: {rd.get('method')}")
-                    lines.append(f"- **Key Findings**: {rd.get('key_finding')}")
+        # 构建 title -> review_data 的查找表，确保与 Key Literature 一致
+        review_lookup = {}
+        for res in extracted_results:
+            if "review_data" in res and res.get("title"):
+                review_lookup[res["title"].lower().strip()] = res["review_data"]
+        
+        if all_accumulated_papers:
+            for p in all_accumulated_papers[:10]:
+                title = (p.get("title") or "Untitled").strip()
+                rd = review_lookup.get(title.lower())
+                lines.append(f"### {title}")
+                if rd:
+                    lines.append(f"- **Methodology**: {rd.get('method', 'N/A')}")
+                    lines.append(f"- **Key Findings**: {rd.get('key_finding', 'N/A')}")
                     if rd.get('metrics_defined'):
                         lines.append(f"- **Defined Metrics**: {', '.join([f'`{m}`' for m in rd.get('metrics_defined', [])])}")
-                    lines.append("")
+                else:
+                    # LLM 提取失败时的降级展示
+                    abstract = (p.get("abstract") or "").strip()
+                    lines.append(f"- **Abstract**: {abstract[:300]}..." if len(abstract) > 300 else f"- **Abstract**: {abstract or 'N/A'}")
+                lines.append("")
         else:
             lines.append("*No detailed qualitative analysis available for the current papers.*")
 
@@ -488,6 +532,13 @@ Tasks:
         "eval_mode": eval_mode,
         "done": iteration >= int(state.get("max_iterations", 1)) or (len(extracted_results) >= 3 if eval_mode == "benchmark" else len(extracted_results) >= 1),
         "metrics_log": metrics_log,
-        "paper_metrics": {"papers": extracted_results}
+        "paper_metrics": {"papers": extracted_results},
+        "retrieval_precision": {
+            "details": precision_details,
+            "relevant_count": relevant_count,
+            "total_count": total_output,
+            "precision_pct": round(precision_ratio, 1) if total_output > 0 else 0.0,
+            "threshold": relevance_threshold,
+        }
     }
 

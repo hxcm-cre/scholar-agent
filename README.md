@@ -3,151 +3,104 @@
 <img src="./logo.png" alt="Scholar-Agent logo" width="180" />
 
 # 🎓 Scholar-Agent
-**Fully Automated Academic Research Assistant**
+**Conversational AI Academic Research Assistant**
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Agentic-orange)](https://langchain-ai.github.io/langgraph/)
-[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=flat&logo=docker)](https://www.docker.com/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL_3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 [English](README.md) • [简体中文](README_zh.md)
 
 <p align="center">
-    <strong>Scholar-Agent can automatically retrieve, filter, and analyze cutting-edge research papers from the web and your local Zotero library, extracting quantified state-of-the-art (SOTA) comparison data and technical recommendations.</strong>
+    <strong>Scholar-Agent is a multi-turn, conversational AI assistant that helps researchers discover, read, and analyze academic papers. It uses a hub-and-spoke architecture where a central LLM manages specialized "Skills" for searching, reading, and reasoning.</strong>
 </p>
 </div>
 
 ---
 
-## 📺 Demo videos and screenshots  
+## ✨ Key Features (V2.0)
 
-**Click to watch the full tutorial video on Bilibili:**
+- 💬 **Multi-turn Dialogue**: A ChatGPT-like conversational interface for natural research exploration.
+- 🤖 **Central LLM Controller**: Decides autonomously when to search for new papers or analyze existing ones using tool calling.
+- 🔍 **Scholar Search Skill**: An upgraded LangGraph pipeline that searches across arXiv and local Zotero libraries, filtering for high-value papers.
+- 📖 **Deep Reading Skill**: Instantly fetch and analyze full-text content of discovered papers using a side-panel reader.
+- 🗂️ **Persistent Knowledge Base**: Maintain multiple chat sessions with persistent memory of found papers.
+- 🔢 **Smart Citations**: AI automatically assigns reference numbers `[1]`, `[2]`, etc., across the conversation for easy follow-up.
 
-[![Scholar-Agent Demo](https://img.shields.io/badge/Bilibili-video-fb7299?style=for-the-badge&logo=bilibili&logoColor=white)](https://www.bilibili.com/video/BV1AmwxzPEBF)
+---
+
+## 📺 Demo and Screenshots
+
+*(Note: Screenshots are being updated to reflect the new conversational UI)*
 
 <div align="center">
-  <img src="backend/assets/1.png" alt="Scholar-Agent Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+  <img src="backend/assets/chat_ui_v2.png" alt="Scholar-Agent V2 Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
   <br />
-  <i>Real-time Agent Tracking: Watch every step of the reasoning pipeline via WebSockets</i>
+  <i>Modern Conversational UI: Multi-turn research dialogue with integrated paper side-panel</i>
 </div>
 
 ---
 
-<div align="center">
-  <img src="backend/assets/2.png" alt="Scholar-Agent Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-  <br />
-</div>
+## 🚀 Quick Start
 
----
-
-<div align="center">
-  <img src="backend/assets/3.png" alt="Scholar-Agent Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-  <br />
-</div>
-
----
-
-<div align="center">
-  <img src="backend/assets/4.png" alt="Scholar-Agent Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-  <br />
-</div>
-
----
-
-<div align="center">
-  <img src="backend/assets/5.png" alt="Scholar-Agent Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-  <br />
-</div>
-
----
-## 🚀 Quick start
-
-### 1. Environment variable configuration
+### 1. Environment Configuration
 ```bash
-# Copy the default environment variable template  
+# Copy the environment variable template
 cp .env.example .env
 ```
----
 
-## ⚙️ Core environment variable description
-
-All core configuration settings are centralized in the `.env` configuration file located in the `backend` directory:
+### ⚙️ Core Environment Variables
+Configure these in the `backend/.env` file:
 
 | Variable | Description |
 |---|---|
-| `OPENAI_API_KEY` | OpenAI Official API Key, used to drive core Agent decision-making and reasoning logic. |
-| `ZOTERO_API_KEY` | Zotero Personal Account API Key, used to remotely read literature library data.|
-| `ZOTERO_USER_ID` | Your Zotero User ID, used to locate specific personal/group libraries. |
-| `EXPERIMENT_CSV_PATH` | Used to specify the storage directory of the generated quantitative analysis CSV file. (Optional) |
+| `OPENAI_API_KEY` | Core Agent logic and reasoning (supporting GPT-4, Qwen, etc.). |
+| `ZOTERO_API_KEY` | For local literature integration. |
+| `ZOTERO_USER_ID` | Your Zotero account ID. |
+| `SELECTED_MODEL_NAME`| Default LLM used by the ChatManager. |
+
 ---
 
-## 2.  Local development environment setup
+## 2. Local Setup
 
-Since the architecture upgrade, the system now requires several components to run in parallel:
-
-### Step 1: Ensure Redis is started
+### Step 1: Start Redis (Terminal 1)
 ```powershell
 cd redis
 .\redis-server.exe
 ```
 
----
-
-### Step 2: Start FastAPI Gateway (Terminal 1)
-This is the central hub for all API requests.
+### Step 2: Start Backend Gateway (Terminal 2)
 ```powershell
-# 1. Enter the backend directory
 cd backend
-
-# 2. Activate the virtual environment
 .\venv\Scripts\Activate.ps1
-
-# 3. Start the service
 python -m uvicorn server:app --reload
 ```
-🔔 **Success Criteria**: Terminal shows `Uvicorn running on http://127.0.0.1:8000`
+🔔 **Success**: Terminal shows `Uvicorn running on http://127.0.0.1:8000`
 
----
-
-### Step 3: Start Celery Computing Cluster (Terminal 2)
-This handles the heavy lifting: PDF parsing and Agent reasoning.
+### Step 3: Start Celery Worker (Terminal 3)
+Required for background research tasks.
 ```powershell
-# 1. Enter the backend directory
 cd backend
-
-# 2. Activate the virtual environment
 .\venv\Scripts\Activate.ps1
-
-# 3. Start the worker (Note: --pool=solo is required on Windows)
 celery -A celery_app worker --loglevel=info --pool=solo
 ```
-🔔 **Success Criteria**: Terminal shows the pyramid icon and `[celery@...] ready.`
 
----
-
-### Step 4: Start the Frontend Interface (Terminal 3)
+### Step 4: Start Frontend (Terminal 4)
 ```powershell
-# 1. Enter the frontend directory
 cd frontend
-
-# 2. Install dependencies (First time only)
 npm install
-
-# 3. Run development server
 npm run dev
 ```
-🔔 **Success Criteria**: Terminal shows `VITE v5.x.x ready in ...` and the link `http://localhost:5173/`.
-
+🔔 **Success**: Terminal shows `VITE v6.x.x ready` and link `http://localhost:3000/`.
 
 ---
 
-## 3.  Run scholar-agent
+## 3. Usage
 
-Now open your browser and visit **[http://localhost:3000](http://localhost:3000)** to start using the platform.
+1. Open **[http://localhost:3000](http://localhost:3000)**.
+2. Click **"New Chat"** to start a session.
+3. Ask questions like: *"Search for latest papers on Transformer efficiency"* or *"Explain the methodology of the second paper"*.
+
 ---
-
-<div align="center">
-Made with ❤️ for Researchers. Accelerating the progress of science with artificial intelligence.
-</div>

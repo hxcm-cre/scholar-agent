@@ -2,33 +2,65 @@
 // Shared TypeScript interfaces matching backend Pydantic schemas
 // ---------------------------------------------------------------------------
 
-export interface ResearchWeights {
-  relevance: number;
-  venue: number;
-  citation: number;
-  repro: number;
+export interface ModelOption {
+  id: string;
+  label: string;
 }
 
-export interface ResearchRequest {
-  query: string;
+// ---------------------------------------------------------------------------
+// Chat API types
+// ---------------------------------------------------------------------------
+export interface ChatSession {
+  id: string;
+  title: string;
   model_name: string;
-  weights: ResearchWeights;
-  use_ocr: boolean;
-  user_metrics: string;
-  run_benchmark: boolean;
-  csv_data?: string | null;
-}
-
-export interface Project {
-  id: number;
-  query: string;
-  model_name: string;
-  status: 'pending' | 'running' | 'done' | 'error';
-  error_message: string | null;
-  weights_json: string;
-  user_metrics: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  role: 'user' | 'assistant' | 'tool';
+  content: string;
+  tool_name: string | null;
+  paper_refs: number[];
+  created_at: string;
+}
+
+export interface ChatSessionDetail extends ChatSession {
+  messages: ChatMessage[];
+  papers: LiteratureItem[];
+}
+
+export interface ChatReply {
+  reply: string;
+  tool_used: string | null;
+  papers: PaperResult[];
+  paper_detail: PaperDetail | null;
+  session: ChatSession;
+}
+
+export interface PaperResult {
+  id: number;
+  index: number;
+  title: string;
+  authors: string;
+  year: number | null;
+  venue: string;
+  abstract: string;
+  citations: number;
+  score: number;
+  url: string;
+}
+
+export interface PaperDetail {
+  id: number;
+  title: string;
+  authors: string;
+  year: number | null;
+  venue: string;
+  abstract: string;
+  url: string;
 }
 
 export interface LiteratureItem {
@@ -47,28 +79,23 @@ export interface LiteratureItem {
   user_notes: string;
 }
 
-export interface ReportItem {
+// ---------------------------------------------------------------------------
+// Legacy types (kept for compatibility)
+// ---------------------------------------------------------------------------
+export interface ResearchWeights {
+  relevance: number;
+  venue: number;
+  citation: number;
+  repro: number;
+}
+
+export interface Project {
   id: number;
-  content_markdown: string;
-  metrics_json: string;
+  query: string;
+  model_name: string;
+  status: 'pending' | 'running' | 'done' | 'error';
+  error_message: string | null;
+  weights_json: string;
   created_at: string;
+  updated_at: string;
 }
-
-export interface ProjectDetail extends Project {
-  literature: LiteratureItem[];
-  reports: ReportItem[];
-}
-
-export interface NodeStatusEvent {
-  type: 'node_status' | 'complete' | 'error';
-  node_name: string;
-  status: string;
-  detail: string;
-  progress: number;
-}
-
-export interface ModelOption {
-  id: string;
-  label: string;
-}
-

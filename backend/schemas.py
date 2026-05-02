@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 
 # ---------------------------------------------------------------------------
-# Request
+# Legacy Request (kept for backward compatibility)
 # ---------------------------------------------------------------------------
 class ResearchWeights(BaseModel):
     relevance: float = Field(0.5, ge=0.0, le=1.0)
@@ -25,8 +25,8 @@ class ResearchRequest(BaseModel):
     weights: ResearchWeights = ResearchWeights()
     use_ocr: bool = False
     user_metrics: str = ""
-    run_benchmark: bool = False  # 是否关联实验数据进行 SOTA 对比
-    csv_data: Optional[str] = None  # base64-encoded CSV
+    run_benchmark: bool = False
+    csv_data: Optional[str] = None
 
 
 class PaperChatRequest(BaseModel):
@@ -39,8 +39,58 @@ class PaperNoteRequest(BaseModel):
     literature_id: int
     note: str
 
+
 # ---------------------------------------------------------------------------
-# Response
+# Chat Request / Response (new conversational API)
+# ---------------------------------------------------------------------------
+class ChatMessageRequest(BaseModel):
+    message: str
+    model_name: str = "qwen3-coder-30b-a3b-instruct"
+
+
+class ChatMessageOut(BaseModel):
+    id: int
+    role: str
+    content: str
+    tool_name: Optional[str] = None
+    paper_refs: List[int] = []
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ChatSessionCreate(BaseModel):
+    model_name: str = "qwen3-coder-30b-a3b-instruct"
+
+
+class ChatSessionOut(BaseModel):
+    id: str
+    title: str
+    model_name: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ChatSessionDetail(ChatSessionOut):
+    messages: List[ChatMessageOut] = []
+    papers: List["LiteratureOut"] = []
+
+
+class ChatReply(BaseModel):
+    """Response from POST /api/chat/sessions/{id}/message"""
+    reply: str
+    tool_used: Optional[str] = None
+    papers: List[Dict[str, Any]] = []
+    paper_detail: Optional[Dict[str, Any]] = None
+    session: ChatSessionOut
+
+
+# ---------------------------------------------------------------------------
+# Legacy Response (kept)
 # ---------------------------------------------------------------------------
 class LiteratureOut(BaseModel):
     id: int
