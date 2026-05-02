@@ -33,8 +33,6 @@
 
 ## 📺 Demo and Screenshots
 
-*(Note: Screenshots are being updated to reflect the new conversational UI)*
-
 <div align="center">
   <img src="backend/assets/chat_ui_v2.png" alt="Scholar-Agent V2 Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
   <br />
@@ -52,14 +50,7 @@ cp .env.example .env
 ```
 
 ### ⚙️ Core Environment Variables
-Configure these in the `backend/.env` file:
-
-| Variable | Description |
-|---|---|
-| `OPENAI_API_KEY` | Core Agent logic and reasoning (supporting GPT-4, Qwen, etc.). |
-| `ZOTERO_API_KEY` | For local literature integration. |
-| `ZOTERO_USER_ID` | Your Zotero account ID. |
-| `SELECTED_MODEL_NAME`| Default LLM used by the ChatManager. |
+Configure Core Environment Variables in the `backend/.env` file
 
 ---
 

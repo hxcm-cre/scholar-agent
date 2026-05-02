@@ -33,7 +33,6 @@
 
 ## 📺 演示与界面截图
 
-*(注：界面截图正在更新以匹配最新的对话式 UI)*
 
 <div align="center">
   <img src="backend/assets/chat_ui_zh_v2.png" alt="Scholar-Agent V2 界面" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
@@ -52,14 +51,7 @@ cp .env.example .env
 ```
 
 ### ⚙️ 核心环境变量说明
-请在 `backend/.env` 中配置以下项：
-
-| 变量键值 | 功能说明 |
-|---|---|
-| `OPENAI_API_KEY` | 驱动核心 Agent 决策逻辑（支持 GPT-4, Qwen 等）。 |
-| `ZOTERO_API_KEY` | 用于集成 Zotero 个人文献库。 |
-| `ZOTERO_USER_ID` | 你的 Zotero 用户 ID。 |
-| `SELECTED_MODEL_NAME`| 中控大模型默认调用的模型名称。 |
+请在 `backend/.env` 中配置核心环境变量
 
 ---
 
