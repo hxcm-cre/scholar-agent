@@ -34,7 +34,7 @@
 ## 📺 Demo and Screenshots
 
 <div align="center">
-  <img src="backend/assets/chat_ui_v2.png" alt="Scholar-Agent V2 Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+  <img src="backend/assets/chat_ui_zh_v2.png" alt="Scholar-Agent V2 Interface" width="90%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
   <br />
   <i>Modern Conversational UI: Multi-turn research dialogue with integrated paper side-panel</i>
 </div>
